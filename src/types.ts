@@ -16,14 +16,20 @@ export type {
 }
 
 /**
- * A video source: either a URI string, or an object with a URI and optional
- * HTTP headers sent with every request for that source.
+ * A video source: either a URI string, or an object with a URI, optional
+ * HTTP headers sent with every request, and an optional cache opt-out.
  */
 export type VideoSource =
   | string
   | {
       uri: string
       headers?: Record<string, string>
+      /**
+       * Disk-cache this source so later playbacks (even after partial
+       * streaming) load from disk. Progressive formats only (MP4, MOV, M4A…);
+       * HLS streams are never disk-cached. Default true.
+       */
+      cache?: boolean
     }
 
 export interface VideoLoadEvent {

@@ -43,10 +43,11 @@ namespace margelo::nitro::nitrovideo {
   public:
     std::string uri     SWIFT_PRIVATE;
     std::optional<std::unordered_map<std::string, std::string>> headers     SWIFT_PRIVATE;
+    std::optional<bool> cache     SWIFT_PRIVATE;
 
   public:
     VideoSource() = default;
-    explicit VideoSource(std::string uri, std::optional<std::unordered_map<std::string, std::string>> headers): uri(uri), headers(headers) {}
+    explicit VideoSource(std::string uri, std::optional<std::unordered_map<std::string, std::string>> headers, std::optional<bool> cache): uri(uri), headers(headers), cache(cache) {}
 
   public:
     friend bool operator==(const VideoSource& lhs, const VideoSource& rhs) = default;
@@ -63,13 +64,15 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::nitrovideo::VideoSource(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri"))),
-        JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "headers")))
+        JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "headers"))),
+        JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cache")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::VideoSource& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "uri"), JSIConverter<std::string>::toJSI(runtime, arg.uri));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "headers"), JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::toJSI(runtime, arg.headers));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "cache"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.cache));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -82,6 +85,7 @@ namespace margelo::nitro {
       }
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri")))) return false;
       if (!JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "headers")))) return false;
+      if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cache")))) return false;
       return true;
     }
   };

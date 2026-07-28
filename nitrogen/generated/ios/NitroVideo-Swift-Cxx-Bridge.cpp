@@ -15,6 +15,30 @@
 
 namespace margelo::nitro::nitrovideo::bridge::swift {
 
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroVideo::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
+    };
+  }
+  
+  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
+  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroVideo::Func_void_std__exception_ptr::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const std::exception_ptr& error) mutable -> void {
+      swiftClosure.call(error);
+    };
+  }
+  
+  // pragma MARK: std::function<void(double /* result */)>
+  Func_void_double create_Func_void_double(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroVideo::Func_void_double::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](double result) mutable -> void {
+      swiftClosure.call(result);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridVideoConfigSpec>
   std::shared_ptr<HybridVideoConfigSpec> create_std__shared_ptr_HybridVideoConfigSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroVideo::HybridVideoConfigSpec_cxx swiftPart = NitroVideo::HybridVideoConfigSpec_cxx::fromUnsafe(swiftUnsafePointer);
@@ -47,14 +71,6 @@ namespace margelo::nitro::nitrovideo::bridge::swift {
     };
   }
   
-  // pragma MARK: std::function<void()>
-  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroVideo::Func_void::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
-      swiftClosure.call();
-    };
-  }
-  
   // pragma MARK: std::function<void(const VideoErrorEvent& /* event */)>
   Func_void_VideoErrorEvent create_Func_void_VideoErrorEvent(void* NON_NULL swiftClosureWrapper) noexcept {
     auto swiftClosure = NitroVideo::Func_void_VideoErrorEvent::fromUnsafe(swiftClosureWrapper);
@@ -76,22 +92,6 @@ namespace margelo::nitro::nitrovideo::bridge::swift {
     auto swiftClosure = NitroVideo::Func_void_bool::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](bool isFullscreen) mutable -> void {
       swiftClosure.call(isFullscreen);
-    };
-  }
-  
-  // pragma MARK: std::function<void(double /* visibleFraction */)>
-  Func_void_double create_Func_void_double(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroVideo::Func_void_double::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](double visibleFraction) mutable -> void {
-      swiftClosure.call(visibleFraction);
-    };
-  }
-  
-  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
-  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = NitroVideo::Func_void_std__exception_ptr::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](const std::exception_ptr& error) mutable -> void {
-      swiftClosure.call(error);
     };
   }
   

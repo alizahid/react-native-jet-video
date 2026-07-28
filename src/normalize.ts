@@ -8,7 +8,7 @@ export function normalizeSource(source: VideoSource): NativeVideoSource {
   if (typeof source === 'string') {
     return { uri: source }
   }
-  return { uri: source.uri, headers: source.headers }
+  return { uri: source.uri, headers: source.headers, cache: source.cache }
 }
 
 /**

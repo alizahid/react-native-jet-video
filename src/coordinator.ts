@@ -1,15 +1,23 @@
 import { NitroModules } from 'react-native-nitro-modules'
-import type { AutoplayConfig, VideoConfig } from './specs/VideoConfig.nitro'
+import type {
+  AutoplayConfig,
+  CacheConfig,
+  VideoConfig,
+} from './specs/VideoConfig.nitro'
 
 let config: VideoConfig | null = null
+
+function nativeConfig(): VideoConfig {
+  config ??= NitroModules.createHybridObject<VideoConfig>('VideoConfig')
+  return config
+}
 
 /**
  * Tunes the visibility-based autoplay election globally.
  * Optional — the defaults (50% visibility threshold, 10% hysteresis) fit most feeds.
  */
 export function configureAutoplay(options: AutoplayConfig): void {
-  config ??= NitroModules.createHybridObject<VideoConfig>('VideoConfig')
-  config.configureAutoplay(options)
+  nativeConfig().configureAutoplay(options)
 }
 
 /**
@@ -17,8 +25,25 @@ export function configureAutoplay(options: AutoplayConfig): void {
  * configures the audio session itself.
  */
 export function setAudioSessionManagementEnabled(enabled: boolean): void {
-  config ??= NitroModules.createHybridObject<VideoConfig>('VideoConfig')
-  config.setAudioSessionManagementEnabled(enabled)
+  nativeConfig().setAudioSessionManagementEnabled(enabled)
 }
 
-export type { AutoplayConfig }
+/**
+ * Configures the video disk cache (progressive sources are cached
+ * automatically, including partially streamed ones).
+ */
+export function configureCache(options: CacheConfig): void {
+  nativeConfig().configureCache(options)
+}
+
+/** Deletes all cached video data. */
+export function clearCache(): Promise<void> {
+  return nativeConfig().clearCache()
+}
+
+/** Current size of the video cache on disk, in bytes. */
+export function getCacheSize(): Promise<number> {
+  return nativeConfig().getCacheSizeBytes()
+}
+
+export type { AutoplayConfig, CacheConfig }

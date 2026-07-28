@@ -16,6 +16,9 @@ namespace margelo::nitro::nitrovideo {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("configureAutoplay", &HybridVideoConfigSpec::configureAutoplay);
       prototype.registerHybridMethod("setAudioSessionManagementEnabled", &HybridVideoConfigSpec::setAudioSessionManagementEnabled);
+      prototype.registerHybridMethod("configureCache", &HybridVideoConfigSpec::configureCache);
+      prototype.registerHybridMethod("clearCache", &HybridVideoConfigSpec::clearCache);
+      prototype.registerHybridMethod("getCacheSizeBytes", &HybridVideoConfigSpec::getCacheSizeBytes);
     });
   }
 

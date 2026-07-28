@@ -1,6 +1,10 @@
 export {
   type AutoplayConfig,
+  type CacheConfig,
+  clearCache,
   configureAutoplay,
+  configureCache,
+  getCacheSize,
   setAudioSessionManagementEnabled,
 } from './coordinator'
 export type {

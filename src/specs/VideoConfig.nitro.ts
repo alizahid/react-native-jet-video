@@ -7,7 +7,15 @@ export interface AutoplayConfig {
   hysteresis?: number
 }
 
+export interface CacheConfig {
+  /** Total disk budget for the video cache, in bytes. Default 1 GB. */
+  maxSizeBytes?: number
+}
+
 export interface VideoConfig extends HybridObject<{ ios: 'swift' }> {
   configureAutoplay(config: AutoplayConfig): void
   setAudioSessionManagementEnabled(enabled: boolean): void
+  configureCache(config: CacheConfig): void
+  clearCache(): Promise<void>
+  getCacheSizeBytes(): Promise<number>
 }

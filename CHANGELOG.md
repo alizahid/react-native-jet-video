@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Transparent disk caching for progressive sources (MP4/MOV/M4A…): byte-range
+  cache with write-through streaming, so partially streamed videos resume from
+  disk across playbacks and app launches. LRU eviction (1 GB default).
+- New APIs: `clearCache()`, `getCacheSize()`, `configureCache({ maxSizeBytes })`,
+  and a per-source opt-out (`source={{ uri, cache: false }}`).
+- HLS is not disk-cached (documented).
+
 ## 0.1.0
 
 Initial release (iOS).

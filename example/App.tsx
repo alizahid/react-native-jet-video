@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import { BasicPlayback } from './src/screens/BasicPlayback'
+import { Cache } from './src/screens/Cache'
 import { Feed } from './src/screens/Feed'
 import { Fullscreen } from './src/screens/Fullscreen'
 import { PictureInPicture } from './src/screens/PictureInPicture'
@@ -12,6 +13,7 @@ const SCREENS = {
   Feed: Feed,
   Fullscreen: Fullscreen,
   PictureInPicture: PictureInPicture,
+  Cache: Cache,
 } as const
 
 type ScreenName = keyof typeof SCREENS

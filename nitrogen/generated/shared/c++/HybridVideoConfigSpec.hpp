@@ -15,8 +15,12 @@
 
 // Forward declaration of `AutoplayConfig` to properly resolve imports.
 namespace margelo::nitro::nitrovideo { struct AutoplayConfig; }
+// Forward declaration of `CacheConfig` to properly resolve imports.
+namespace margelo::nitro::nitrovideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
+#include "CacheConfig.hpp"
+#include <NitroModules/Promise.hpp>
 
 namespace margelo::nitro::nitrovideo {
 
@@ -51,6 +55,9 @@ namespace margelo::nitro::nitrovideo {
       // Methods
       virtual void configureAutoplay(const AutoplayConfig& config) = 0;
       virtual void setAudioSessionManagementEnabled(bool enabled) = 0;
+      virtual void configureCache(const CacheConfig& config) = 0;
+      virtual std::shared_ptr<Promise<void>> clearCache() = 0;
+      virtual std::shared_ptr<Promise<double>> getCacheSizeBytes() = 0;
 
     protected:
       // Hybrid Setup

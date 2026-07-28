@@ -124,6 +124,22 @@ import { setAudioSessionManagementEnabled } from 'react-native-nitro-video'
 setAudioSessionManagementEnabled(false)
 ```
 
+## Caching
+
+Progressive sources (MP4, MOV, M4A, …) are **disk-cached automatically**, including partially streamed ones: whatever bytes were streamed are kept as ranges on disk, so a later playback — even after an app restart — serves from cache instantly and only fetches the missing ranges. The cache is LRU-evicted against a 1 GB budget by default.
+
+```ts
+import { clearCache, configureCache, getCacheSize } from 'react-native-nitro-video'
+
+configureCache({ maxSizeBytes: 512 * 1024 * 1024 })
+const bytes = await getCacheSize()
+await clearCache()
+```
+
+Opt out per source with `source={{ uri, cache: false }}`.
+
+HLS streams are **not** disk-cached (AVPlayer buffers them in memory); caching applies to progressive downloads only.
+
 ## Picture-in-Picture setup
 
 1. Set `allowsPictureInPicture` (and optionally `autoEnterPiPOnBackground`) on the view.

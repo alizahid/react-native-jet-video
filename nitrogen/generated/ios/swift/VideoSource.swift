@@ -18,7 +18,7 @@ public extension VideoSource {
   /**
    * Create a new instance of `VideoSource`.
    */
-  init(uri: String, headers: Dictionary<String, String>?) {
+  init(uri: String, headers: Dictionary<String, String>?, cache: Bool?) {
     self.init(std.string(uri), { () -> bridge.std__optional_std__unordered_map_std__string__std__string__ in
       if let __unwrappedValue = headers {
         return bridge.create_std__optional_std__unordered_map_std__string__std__string__({ () -> bridge.std__unordered_map_std__string__std__string_ in
@@ -28,6 +28,12 @@ public extension VideoSource {
           }
           return __map
         }())
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_bool_ in
+      if let __unwrappedValue = cache {
+        return bridge.create_std__optional_bool_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -53,6 +59,18 @@ public extension VideoSource {
           }
           return __dictionary
         }()
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var cache: Bool? {
+    return { () -> Bool? in
+      if bridge.has_value_std__optional_bool_(self.__cache) {
+        let __unwrapped = bridge.get_std__optional_bool_(self.__cache)
+        return __unwrapped
       } else {
         return nil
       }

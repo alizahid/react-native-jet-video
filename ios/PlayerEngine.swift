@@ -67,6 +67,8 @@ final class PlayerEngine {
   private var timeControlObservation: NSKeyValueObservation?
   private var timeObserverToken: Any?
   private var endObserver: NSObjectProtocol?
+  // Strong: the asset's resourceLoader delegate is weakly referenced by AVFoundation.
+  private var resourceLoader: CachingResourceLoader?
 
   init() {
     player.automaticallyWaitsToMinimizeStalling = true
@@ -94,6 +96,7 @@ final class PlayerEngine {
     reachedEnd = false
     didEmitLoad = false
     player.replaceCurrentItem(with: nil)
+    resourceLoader = nil
 
     guard let source, let url = URL(string: source.uri) else {
       transition(to: .idle, reason: .system)
@@ -103,11 +106,19 @@ final class PlayerEngine {
       return
     }
 
-    var options: [String: Any] = [:]
-    if let headers = source.headers, !headers.isEmpty {
-      options["AVURLAssetHTTPHeaderFieldsKey"] = headers
+    let asset: AVURLAsset
+    if source.cache ?? true, let assetURL = CachingResourceLoader.assetURL(for: url) {
+      let loader = CachingResourceLoader(originalURL: url, headers: source.headers ?? [:])
+      asset = AVURLAsset(url: assetURL)
+      asset.resourceLoader.setDelegate(loader, queue: loader.queue)
+      resourceLoader = loader
+    } else {
+      var options: [String: Any] = [:]
+      if let headers = source.headers, !headers.isEmpty {
+        options["AVURLAssetHTTPHeaderFieldsKey"] = headers
+      }
+      asset = AVURLAsset(url: url, options: options)
     }
-    let asset = AVURLAsset(url: url, options: options)
     let item = AVPlayerItem(asset: asset)
     attachObservers(to: item)
     player.replaceCurrentItem(with: item)

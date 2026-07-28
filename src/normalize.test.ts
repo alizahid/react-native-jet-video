@@ -18,6 +18,12 @@ describe('normalizeSource', () => {
       headers: { Authorization: 'Bearer x' },
     })
   })
+
+  it('passes through the cache opt-out', () => {
+    expect(
+      normalizeSource({ uri: 'https://example.com/a.mp4', cache: false })
+    ).toEqual({ uri: 'https://example.com/a.mp4', cache: false })
+  })
 })
 
 describe('sourceKey', () => {

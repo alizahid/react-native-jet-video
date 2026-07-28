@@ -14,6 +14,8 @@ namespace margelo::nitro::nitrovideo { enum class AudioMixMode; }
 namespace margelo::nitro::nitrovideo { struct AutoplayConfig; }
 // Forward declaration of `AutoplayMode` to properly resolve imports.
 namespace margelo::nitro::nitrovideo { enum class AutoplayMode; }
+// Forward declaration of `CacheConfig` to properly resolve imports.
+namespace margelo::nitro::nitrovideo { struct CacheConfig; }
 // Forward declaration of `HybridVideoConfigSpec` to properly resolve imports.
 namespace margelo::nitro::nitrovideo { class HybridVideoConfigSpec; }
 // Forward declaration of `HybridVideoViewSpec` to properly resolve imports.
@@ -39,6 +41,7 @@ namespace margelo::nitro::nitrovideo { struct VideoSource; }
 #include "AudioMixMode.hpp"
 #include "AutoplayConfig.hpp"
 #include "AutoplayMode.hpp"
+#include "CacheConfig.hpp"
 #include "HybridVideoConfigSpec.hpp"
 #include "HybridVideoViewSpec.hpp"
 #include "LoadEvent.hpp"

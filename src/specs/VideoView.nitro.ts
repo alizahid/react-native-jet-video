@@ -7,6 +7,8 @@ import type {
 export interface VideoSource {
   uri: string
   headers?: Record<string, string>
+  /** Disk-cache this source (progressive formats only). Default true. */
+  cache?: boolean
 }
 
 export type AutoplayMode = 'off' | 'always' | 'whenVisible'
