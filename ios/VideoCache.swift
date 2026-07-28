@@ -43,6 +43,15 @@ final class VideoCache {
 
   func clear(completion: @escaping () -> Void) {
     queue.async { [self] in
+      // Reset in-use entries FIRST: close their file handles and wipe their
+      // in-memory ranges. Otherwise an active entry keeps writing to an
+      // orphaned (deleted) file while re-persisting metadata that claims
+      // ranges the new on-disk file doesn't have — corrupting later playback.
+      if let entries = activeEntries.objectEnumerator()?.allObjects as? [CacheEntry] {
+        for entry in entries {
+          entry.reset()
+        }
+      }
       let files = (try? FileManager.default.contentsOfDirectory(
         at: directory,
         includingPropertiesForKeys: nil
@@ -160,6 +169,21 @@ final class CacheEntry {
     return storedContentType
   }
 
+  /// Forgets everything: closes file handles and wipes in-memory ranges so
+  /// subsequent writes recreate the on-disk files from scratch. Called when
+  /// the cache is cleared while this entry is in use.
+  func reset() {
+    lock.lock()
+    defer { lock.unlock() }
+    try? readHandle?.close()
+    try? writeHandle?.close()
+    readHandle = nil
+    writeHandle = nil
+    ranges = []
+    storedContentLength = nil
+    storedContentType = nil
+  }
+
   func setContentInfo(length: Int64?, type: String?) {
     lock.lock()
     defer { lock.unlock() }
@@ -245,8 +269,14 @@ final class CacheEntry {
     }
     storedContentLength = meta.contentLength
     storedContentType = meta.contentType
+    // Sanity: a claimed range past the data file's logical size cannot be
+    // backed by real bytes (sparse writes always extend the file to the
+    // highest written offset) — drop such ranges instead of serving zeros.
+    let fileSize = Int64(
+      (try? FileManager.default.attributesOfItem(atPath: dataURL.path)[.size] as? Int64) ?? 0
+    )
     ranges = meta.ranges.compactMap { pair in
-      guard pair.count == 2, pair[0] < pair[1] else { return nil }
+      guard pair.count == 2, pair[0] < pair[1], pair[1] <= fileSize else { return nil }
       return pair[0]..<pair[1]
     }
   }

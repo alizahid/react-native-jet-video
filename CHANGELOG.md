@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Autoplay election: when candidates are comparably visible (within
+  hysteresis), the video closest to the screen center now wins — fixes
+  scrolling back up not handing playback to the previous video, and makes
+  handoff symmetric in both scroll directions.
+- Fixed cache corruption when `clearCache()` ran during active playback:
+  active entries now reset their in-memory state, and stale metadata ranges
+  that can't be backed by the data file are dropped on load.
 - **Breaking:** removed `autoEnterPiPOnBackground`. `allowsPictureInPicture`
   alone now also auto-enters PiP with the currently playing video when the app
   is backgrounded.

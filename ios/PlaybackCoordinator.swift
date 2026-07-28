@@ -19,6 +19,9 @@ final class PlaybackCoordinator {
   static var minVisibleFraction: Double = 0.5
   static var hysteresis: Double = 0.10
   static let debounceTicks = 2
+  /// How much closer to the screen centre (normalized per-axis) a challenger
+  /// must be to dethrone an incumbent of comparable visibility.
+  static let centerMargin: Double = 0.05
 
   private static var groups: [String: PlaybackCoordinator] = [:]
 
@@ -169,12 +172,13 @@ final class PlaybackCoordinator {
     }
 
     var rectsChanged = false
-    var infos: [(view: HybridVideoView, fraction: Double, rect: CGRect)] = []
+    var infos: [(view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)] = []
     infos.reserveCapacity(active.count)
 
     for view in active {
       let id = ObjectIdentifier(view)
       let (fraction, rect) = VisibilityTracker.visibleFraction(of: view.view)
+      let centerDistance = Self.centerDistance(of: rect, in: view.view.window)
 
       if lastRects[id] != rect {
         lastRects[id] = rect
@@ -208,7 +212,7 @@ final class PlaybackCoordinator {
         dirty = true
       }
 
-      infos.append((view, fraction, rect))
+      infos.append((view, fraction, rect, centerDistance))
     }
 
     guard rectsChanged || dirty else { return }
@@ -250,12 +254,24 @@ final class PlaybackCoordinator {
       return
     }
 
-    // Best candidate: highest fraction, ties broken topmost then leftmost.
-    let best = eligible.max { a, b in
-      if a.fraction != b.fraction { return a.fraction < b.fraction }
-      if a.rect.minY != b.rect.minY { return a.rect.minY > b.rect.minY }
-      return a.rect.minX > b.rect.minX
-    }!
+    // Ranking: a decisively more-visible video wins; when visibility is
+    // comparable (within hysteresis), the video closest to the screen centre
+    // wins. Final ties break topmost, then leftmost.
+    func outranks(
+      _ a: (view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double),
+      _ b: (view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)
+    ) -> Bool {
+      if a.fraction > b.fraction + Self.hysteresis { return true }
+      if b.fraction > a.fraction + Self.hysteresis { return false }
+      if a.centerDistance != b.centerDistance { return a.centerDistance < b.centerDistance }
+      if a.rect.minY != b.rect.minY { return a.rect.minY < b.rect.minY }
+      return a.rect.minX < b.rect.minX
+    }
+
+    var best = eligible[0]
+    for candidate in eligible.dropFirst() where outranks(candidate, best) {
+      best = candidate
+    }
 
     let incumbent = winner.flatMap { current in
       eligible.first { $0.view === current }
@@ -276,10 +292,20 @@ final class PlaybackCoordinator {
       return
     }
 
-    // Hysteresis + debounce: a challenger must beat the incumbent by a margin,
-    // for consecutive ticks, before the election flips. Prevents flapping when
-    // two videos are near 50/50 during scroll.
+    // Dethroning needs a decisive edge, sustained for consecutive ticks:
+    // either clearly more visible (hysteresis), or — at comparable
+    // visibility — clearly closer to the screen centre (centerMargin).
+    // Prevents flapping when two videos trade places during scroll.
+    let decisive: Bool
     if best.fraction > incumbent.fraction + Self.hysteresis {
+      decisive = true
+    } else if incumbent.fraction > best.fraction + Self.hysteresis {
+      decisive = false
+    } else {
+      decisive = best.centerDistance + Self.centerMargin < incumbent.centerDistance
+    }
+
+    if decisive {
       let id = ObjectIdentifier(best.view)
       if challengerId == id {
         challengerTicks += 1
@@ -314,6 +340,18 @@ final class PlaybackCoordinator {
     default:
       view.engine.play(reason: .coordinator)
     }
+  }
+
+  /// Distance from the video's centre to the screen centre, with each axis
+  /// normalized by the window's size — so "one screen-height away" and "one
+  /// screen-width away" weigh the same in portrait or landscape.
+  private static func centerDistance(of rect: CGRect, in window: UIWindow?) -> Double {
+    guard let window, !rect.isEmpty else { return .greatestFiniteMagnitude }
+    let bounds = window.bounds
+    guard bounds.width > 0, bounds.height > 0 else { return .greatestFiniteMagnitude }
+    let dx = Double((rect.midX - bounds.midX) / bounds.width)
+    let dy = Double((rect.midY - bounds.midY) / bounds.height)
+    return (dx * dx + dy * dy).squareRoot()
   }
 
   private func pauseIfPlaying(_ view: HybridVideoView) {

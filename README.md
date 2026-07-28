@@ -32,6 +32,7 @@ Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or a
 How the election works (all native, ~10 Hz, works with nested/clipped scroll views):
 
 - A video is eligible once it's ≥50% visible; the most-visible eligible video plays.
+- When two videos are comparably visible (e.g. both fully on screen), the one **closest to the center of the screen** plays — so scrolling in either direction hands playback to the video you're looking at.
 - Hysteresis + debouncing prevent flapping when two videos are near 50/50.
 - If the user pauses a video (ref or tap), the coordinator **never force-resumes it** — until it scrolls fully away, which resets it like feeds you know.
 - If the user plays a video explicitly, it wins the election until it scrolls below the threshold.
