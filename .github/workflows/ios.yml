@@ -1,0 +1,54 @@
+name: iOS build
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'nitrogen/**'
+      - 'nitro.json'
+      - '*.podspec'
+      - 'example/ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build example app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: example
+
+      - name: Install pods
+        run: bundle exec pod install --project-directory=ios
+        working-directory: example
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -workspace example/ios/NitroVideoExample.xcworkspace \
+            -scheme NitroVideoExample \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify --quiet || exit 1

@@ -1,0 +1,31 @@
+{
+  "uiViewClassName": "VideoView",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "source": true,
+    "autoplayMode": true,
+    "muted": true,
+    "loop": true,
+    "volume": true,
+    "resizeMode": true,
+    "controls": true,
+    "posterUri": true,
+    "allowsPictureInPicture": true,
+    "autoEnterPiPOnBackground": true,
+    "progressUpdateInterval": true,
+    "audioMixMode": true,
+    "coordinatorGroup": true,
+    "onLoad": true,
+    "onProgress": true,
+    "onEnd": true,
+    "onError": true,
+    "onPlaybackStateChange": true,
+    "onFullscreenChange": true,
+    "onPictureInPictureChange": true,
+    "onMutedChange": true,
+    "onVisibilityChange": true,
+    "hybridRef": true
+  }
+}

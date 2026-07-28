@@ -1,0 +1,461 @@
+import AVKit
+import Foundation
+import NitroModules
+import UIKit
+
+class HybridVideoView: HybridVideoViewSpec {
+  private let surface = PlayerLayerView()
+  private let posterView = PosterView(frame: .zero)
+  private(set) var engine = PlayerEngine()
+  private var readyForDisplayObservation: NSKeyValueObservation?
+  private var mutedObservation: NSKeyValueObservation?
+  private var embeddedController: AVPlayerViewController?
+  private lazy var pipManager = PictureInPictureManager(owner: self)
+  private lazy var controllerDelegateProxy = PlayerControllerDelegateProxy(owner: self)
+
+  // Coordinator-owned state (read/written on main only).
+  var autoplayOverride: AutoplayOverride = .none
+  var isInPictureInPicture = false
+  var isFullscreen = false
+  private var coordinator: PlaybackCoordinator?
+
+  var view: UIView { surface }
+
+  override init() {
+    super.init()
+    engine.delegate = self
+    surface.player = engine.player
+    attachEngineHooks()
+    observeEnginePlayer()
+
+    posterView.isHidden = true
+    posterView.translatesAutoresizingMaskIntoConstraints = false
+    surface.addSubview(posterView)
+    NSLayoutConstraint.activate([
+      posterView.leadingAnchor.constraint(equalTo: surface.leadingAnchor),
+      posterView.trailingAnchor.constraint(equalTo: surface.trailingAnchor),
+      posterView.topAnchor.constraint(equalTo: surface.topAnchor),
+      posterView.bottomAnchor.constraint(equalTo: surface.bottomAnchor),
+    ])
+
+    readyForDisplayObservation = surface.playerLayer.observe(\.isReadyForDisplay) { [weak self] layer, _ in
+      DispatchQueue.main.async {
+        if layer.isReadyForDisplay {
+          self?.posterView.isHidden = true
+        }
+      }
+    }
+
+    surface.onWindowChanged = { [weak self] in
+      self?.handleWindowChanged()
+    }
+  }
+
+  // MARK: - Props
+
+  var source: VideoSource? = nil {
+    didSet {
+      let changed = source?.uri != engine.sourceUri
+      if changed, isFullscreen {
+        // This cell is being recycled while its engine is presented fullscreen.
+        // Orphan the fullscreen engine (the presenter holds it strongly) and
+        // continue with a fresh one so the new cell content is independent.
+        detachEngineForFullscreenOrphan()
+      }
+      engine.setSource(source)
+      if changed {
+        posterView.isHidden = posterUri == nil
+        autoplayOverride = .none
+        coordinator?.noteSourceChanged(self)
+      }
+      updateCoordinatorRegistration()
+      applyAutoplay()
+    }
+  }
+
+  var autoplayMode: AutoplayMode = .off {
+    didSet {
+      guard autoplayMode != oldValue else { return }
+      updateCoordinatorRegistration()
+      applyAutoplay()
+    }
+  }
+
+  var muted: Bool = false {
+    didSet {
+      engine.isMuted = muted
+      if !muted, engine.status == .playing || engine.status == .buffering {
+        AudioSessionManager.shared.willPlay(muted: false, mixMode: audioMixMode)
+      }
+    }
+  }
+
+  var loop: Bool = false {
+    didSet { engine.loop = loop }
+  }
+
+  var volume: Double = 1 {
+    didSet { engine.volume = volume }
+  }
+
+  var resizeMode: ResizeMode = .cover {
+    didSet {
+      surface.resizeMode = resizeMode
+      embeddedController?.videoGravity = PlayerLayerView.gravity(for: resizeMode)
+    }
+  }
+
+  var controls: Bool = false {
+    didSet {
+      guard controls != oldValue else { return }
+      updateControlsSurface()
+    }
+  }
+
+  var posterUri: String? = nil {
+    didSet {
+      posterView.setPoster(uri: posterUri)
+      if posterUri == nil {
+        posterView.isHidden = true
+      } else if !surface.playerLayer.isReadyForDisplay {
+        posterView.isHidden = false
+      }
+    }
+  }
+
+  var allowsPictureInPicture: Bool = false {
+    didSet {
+      embeddedController?.allowsPictureInPicturePlayback = allowsPictureInPicture
+      updatePiPSetup()
+    }
+  }
+
+  var autoEnterPiPOnBackground: Bool = false {
+    didSet { updatePiPSetup() }
+  }
+
+  var progressUpdateInterval: Double = 500 {
+    didSet { engine.progressIntervalMs = progressUpdateInterval }
+  }
+
+  var audioMixMode: AudioMixMode = .mixwithothers
+
+  var coordinatorGroup: String? = nil {
+    didSet {
+      guard coordinatorGroup != oldValue else { return }
+      updateCoordinatorRegistration()
+    }
+  }
+
+  var onLoad: ((LoadEvent) -> Void)? = nil
+  var onProgress: ((ProgressEvent) -> Void)? = nil
+  var onEnd: (() -> Void)? = nil
+  var onError: ((VideoErrorEvent) -> Void)? = nil
+  var onPlaybackStateChange: ((PlaybackStateEvent) -> Void)? = nil
+  var onFullscreenChange: ((Bool) -> Void)? = nil
+  var onPictureInPictureChange: ((Bool) -> Void)? = nil
+  var onMutedChange: ((Bool) -> Void)? = nil
+  var onVisibilityChange: ((Double) -> Void)? = nil
+
+  // MARK: - Methods
+
+  func play() throws {
+    DispatchQueue.main.async { [self] in
+      coordinator?.noteUserPlay(self)
+      engine.play(reason: .user)
+    }
+  }
+
+  func pause() throws {
+    DispatchQueue.main.async { [self] in
+      coordinator?.noteUserPause(self)
+      engine.pause(reason: .user)
+    }
+  }
+
+  func seek(seconds: Double) throws -> Promise<Void> {
+    let promise = Promise<Void>()
+    DispatchQueue.main.async { [self] in
+      engine.seek(to: seconds) {
+        promise.resolve(withResult: ())
+      }
+    }
+    return promise
+  }
+
+  func getCurrentTime() throws -> Double {
+    engine.currentTime
+  }
+
+  func enterFullscreen() throws -> Promise<Void> {
+    let promise = Promise<Void>()
+    DispatchQueue.main.async { [self] in
+      guard !isFullscreen else {
+        promise.resolve(withResult: ())
+        return
+      }
+      FullscreenPresenter.shared.present(for: self) { error in
+        if let error {
+          promise.reject(withError: error)
+        } else {
+          promise.resolve(withResult: ())
+        }
+      }
+    }
+    return promise
+  }
+
+  func exitFullscreen() throws -> Promise<Void> {
+    let promise = Promise<Void>()
+    DispatchQueue.main.async {
+      FullscreenPresenter.shared.dismiss { error in
+        if let error {
+          promise.reject(withError: error)
+        } else {
+          promise.resolve(withResult: ())
+        }
+      }
+    }
+    return promise
+  }
+
+  func startPictureInPicture() throws -> Promise<Void> {
+    let promise = Promise<Void>()
+    DispatchQueue.main.async { [self] in
+      updatePiPSetup()
+      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode)
+      pipManager.start { error in
+        if let error {
+          promise.reject(withError: error)
+        } else {
+          promise.resolve(withResult: ())
+        }
+      }
+    }
+    return promise
+  }
+
+  func stopPictureInPicture() throws -> Promise<Void> {
+    let promise = Promise<Void>()
+    DispatchQueue.main.async { [self] in
+      pipManager.stop()
+      promise.resolve(withResult: ())
+    }
+    return promise
+  }
+
+  // MARK: - Picture in Picture
+
+  func pictureInPictureDidChange(active: Bool) {
+    isInPictureInPicture = active
+    coordinator?.noteStateInvalidated()
+    onPictureInPictureChange?(active)
+  }
+
+  private func updatePiPSetup() {
+    guard allowsPictureInPicture, !controls, surface.window != nil else { return }
+    pipManager.setup(
+      playerLayer: surface.playerLayer,
+      autoEnterOnBackground: autoEnterPiPOnBackground
+    )
+    if autoEnterPiPOnBackground {
+      // Auto-entering PiP on background requires the .playback category up front.
+      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode)
+    }
+  }
+
+  // MARK: - Engine management
+
+  private func attachEngineHooks() {
+    engine.willPlay = { [weak self] in
+      guard let self else { return }
+      AudioSessionManager.shared.willPlay(muted: muted, mixMode: audioMixMode)
+    }
+  }
+
+  private func observeEnginePlayer() {
+    mutedObservation = engine.player.observe(\.isMuted) { [weak self] player, _ in
+      DispatchQueue.main.async {
+        guard let self else { return }
+        if player.isMuted != self.muted {
+          self.onMutedChange?(player.isMuted)
+        }
+      }
+    }
+  }
+
+  /// Hands the current engine over to the fullscreen presenter (which holds it
+  /// strongly) and installs a fresh engine for this view's next source.
+  private func detachEngineForFullscreenOrphan() {
+    isFullscreen = false
+    engine.delegate = nil
+    engine = PlayerEngine()
+    engine.delegate = self
+    engine.isMuted = muted
+    engine.loop = loop
+    engine.volume = volume
+    engine.progressIntervalMs = progressUpdateInterval
+    attachEngineHooks()
+    observeEnginePlayer()
+    if embeddedController != nil {
+      embeddedController?.player = engine.player
+    } else {
+      surface.player = engine.player
+    }
+  }
+
+  // MARK: - Controls surface
+
+  private func updateControlsSurface() {
+    if controls {
+      guard embeddedController == nil, surface.window != nil,
+            let parent = surface.nearestViewController else {
+        // No window/VC yet — retried from didMoveToWindow.
+        return
+      }
+      let controller = AVPlayerViewController()
+      controller.player = engine.player
+      controller.videoGravity = PlayerLayerView.gravity(for: resizeMode)
+      controller.allowsPictureInPicturePlayback = allowsPictureInPicture
+      controller.delegate = controllerDelegateProxy
+      parent.addChild(controller)
+      controller.view.frame = surface.bounds
+      controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+      controller.view.backgroundColor = .black
+      surface.insertSubview(controller.view, belowSubview: posterView)
+      controller.didMove(toParent: parent)
+      embeddedController = controller
+      surface.player = nil
+    } else if let controller = embeddedController {
+      controller.willMove(toParent: nil)
+      controller.view.removeFromSuperview()
+      controller.removeFromParent()
+      controller.player = nil
+      embeddedController = nil
+      surface.player = engine.player
+    }
+  }
+
+  // MARK: - Autoplay + coordination
+
+  private func applyAutoplay() {
+    guard source != nil else { return }
+    if autoplayMode == .always {
+      engine.play(reason: .system)
+    }
+  }
+
+  private func handleWindowChanged() {
+    updateCoordinatorRegistration()
+    if surface.window == nil {
+      if !isInPictureInPicture, !isFullscreen {
+        engine.pause(reason: .system)
+      }
+    } else if controls, embeddedController == nil {
+      updateControlsSurface()
+    } else {
+      updatePiPSetup()
+    }
+  }
+
+  private func updateCoordinatorRegistration() {
+    let shouldRegister =
+      autoplayMode == .whenvisible && surface.window != nil && source != nil
+    if shouldRegister {
+      let target = PlaybackCoordinator.coordinator(forGroup: coordinatorGroup)
+      if coordinator !== target {
+        coordinator?.unregister(self)
+        coordinator = target
+      }
+      target.register(self)
+    } else if let coordinator {
+      coordinator.unregister(self)
+      self.coordinator = nil
+    }
+  }
+}
+
+// MARK: - AVPlayerViewControllerDelegate proxy (embedded controls surface)
+
+/// Relays embedded AVPlayerViewController fullscreen/PiP transitions to the
+/// owning view. A separate NSObject because HybridVideoView cannot conform to
+/// AVPlayerViewControllerDelegate directly (it is not an NSObject).
+final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDelegate {
+  weak var owner: HybridVideoView?
+
+  init(owner: HybridVideoView) {
+    self.owner = owner
+    super.init()
+  }
+
+  func playerViewController(
+    _ playerViewController: AVPlayerViewController,
+    willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+  ) {
+    owner?.isFullscreen = true
+    owner?.onFullscreenChange?(true)
+  }
+
+  func playerViewController(
+    _ playerViewController: AVPlayerViewController,
+    willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+  ) {
+    owner?.isFullscreen = false
+    owner?.onFullscreenChange?(false)
+  }
+
+  func playerViewControllerDidStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
+    owner?.pictureInPictureDidChange(active: true)
+  }
+
+  func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
+    owner?.pictureInPictureDidChange(active: false)
+  }
+}
+
+// MARK: - PlayerEngineDelegate
+
+extension HybridVideoView: PlayerEngineDelegate {
+  func engine(_ engine: PlayerEngine, didChangeStatus status: PlaybackStatus, reason: PlaybackChangeReason) {
+    onPlaybackStateChange?(PlaybackStateEvent(status: status, reason: reason))
+  }
+
+  func engine(_ engine: PlayerEngine, didLoad event: LoadEvent) {
+    onLoad?(event)
+  }
+
+  func engine(_ engine: PlayerEngine, didProgress event: ProgressEvent) {
+    onProgress?(event)
+  }
+
+  func engineDidPlayToEnd(_ engine: PlayerEngine) {
+    onEnd?()
+  }
+
+  func engine(_ engine: PlayerEngine, didFail error: VideoErrorEvent) {
+    onError?(error)
+  }
+}
+
+enum VideoViewError: Error, LocalizedError {
+  case notImplemented(String)
+  case fullscreenAlreadyPresented
+  case notInFullscreen
+  case noViewControllerToPresentFrom
+  case pictureInPictureNotPossible
+
+  var errorDescription: String? {
+    switch self {
+    case .notImplemented(let name):
+      return "\(name) is not implemented yet"
+    case .fullscreenAlreadyPresented:
+      return "A fullscreen video is already presented"
+    case .notInFullscreen:
+      return "No fullscreen video is currently presented"
+    case .noViewControllerToPresentFrom:
+      return "Could not find a view controller to present fullscreen from"
+    case .pictureInPictureNotPossible:
+      return "Picture in Picture is not possible right now"
+    }
+  }
+}

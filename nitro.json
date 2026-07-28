@@ -1,0 +1,32 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "nitrovideo"
+  ],
+  "ios": {
+    "iosModuleName": "NitroVideo"
+  },
+  "android": {
+    "androidNamespace": [
+      "nitrovideo"
+    ],
+    "androidCxxLibName": "NitroVideo"
+  },
+  "autolinking": {
+    "VideoView": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridVideoView"
+      }
+    },
+    "VideoConfig": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridVideoConfig"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules"
+  ]
+}
