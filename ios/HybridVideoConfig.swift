@@ -20,9 +20,10 @@ class HybridVideoConfig: HybridVideoConfigSpec {
   }
 
   func configureCache(config: CacheConfig) throws {
-    if let maxSizeBytes = config.maxSizeBytes, maxSizeBytes > 0 {
-      VideoCache.shared.maxSizeBytes = Int64(maxSizeBytes)
-      VideoCache.shared.enforceLimit()
+    // Unvalidated JS numbers: Int64(Infinity) or Int64(1e19) traps at runtime.
+    if let maxSizeBytes = config.maxSizeBytes, maxSizeBytes.isFinite,
+       maxSizeBytes >= 1, maxSizeBytes < 9e18 {
+      VideoCache.shared.configure(maxSizeBytes: Int64(maxSizeBytes))
     }
   }
 

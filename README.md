@@ -90,7 +90,7 @@ Expo: works in a [development build](https://docs.expo.dev/develop/development-b
 
 | Prop | Type | Default | |
 |---|---|---|---|
-| `source` | `string \| { uri, headers? }` | — | MP4, HLS (`.m3u8`), anything AVPlayer speaks |
+| `source` | `string \| { uri, headers?, cache? }` | — | MP4, HLS (`.m3u8`), anything AVPlayer speaks |
 | `autoplay` | `boolean \| 'whenVisible'` | `false` | `'whenVisible'` enables the coordinator |
 | `muted` | `boolean` | `false` | |
 | `loop` | `boolean` | `false` | |

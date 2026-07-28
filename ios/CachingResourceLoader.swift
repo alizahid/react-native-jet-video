@@ -28,6 +28,10 @@ final class CachingResourceLoader: NSObject {
   // deinit can never run, and creating the lazy session during deinit hands
   // CFNetwork a half-deallocated delegate (use-after-free).
   private var session: URLSession?
+  // Guarded by `queue`. A loading request that AVFoundation delivers after
+  // invalidation must not recreate the session — it would never be
+  // invalidated again, retaining this loader (and its download) forever.
+  private var invalidated = false
 
   init(originalURL: URL, headers: [String: String]) {
     self.originalURL = originalURL
@@ -48,6 +52,7 @@ final class CachingResourceLoader: NSObject {
   /// safe to call multiple times and from any thread.
   func invalidate() {
     queue.async { [self] in
+      invalidated = true
       for handler in handlers.values {
         handler.cancel()
       }
@@ -93,13 +98,20 @@ final class CachingResourceLoader: NSObject {
   // MARK: - Request handling (all on `queue`)
 
   fileprivate func startHandler(for loadingRequest: AVAssetResourceLoadingRequest) {
+    guard !invalidated else {
+      loadingRequest.finishLoading(with: NSError(
+        domain: NSURLErrorDomain,
+        code: NSURLErrorCancelled
+      ))
+      return
+    }
     let handler = RequestHandler(
       loadingRequest: loadingRequest,
       entry: entry,
       originalURL: originalURL,
       headers: headers,
       makeTask: { [weak self] request, handler in
-        guard let self else { return nil }
+        guard let self, !invalidated else { return nil }
         let task = networkSession().dataTask(with: request)
         taskRouter[task.taskIdentifier] = handler
         return task
@@ -277,6 +289,9 @@ private final class RequestHandler {
     for (field, value) in headers {
       request.setValue(value, forHTTPHeaderField: field)
     }
+    // Transparent gzip/br decoding would desync our byte offsets from the
+    // server's Content-Range and silently corrupt the cache.
+    request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
     if let end = endOffset {
       request.setValue("bytes=\(offset)-\(end - 1)", forHTTPHeaderField: "Range")
     } else {
@@ -299,7 +314,11 @@ private final class RequestHandler {
       )
     } else if http.statusCode == 206 {
       let contentRange = http.value(forHTTPHeaderField: "Content-Range")
-      let total = contentRange?.split(separator: "/").last.flatMap { Int64($0) }
+      var total = contentRange?.split(separator: "/").last.flatMap { Int64($0) }
+      if total == nil, response.expectedContentLength > 0 {
+        // "Content-Range: bytes x-y/*" — derive the total from this window.
+        total = networkOffset + response.expectedContentLength
+      }
       entry.setContentInfo(length: total, type: response.mimeType)
     } else {
       finish(error: NSError(
@@ -310,6 +329,12 @@ private final class RequestHandler {
       return
     }
     fillContentInfoFromCache()
+    // A content-info-only request is satisfied by the headers alone — finish
+    // now instead of streaming the whole file before AVPlayer can proceed.
+    if loadingRequest.dataRequest == nil, !contentInfoIncomplete() {
+      finish(error: nil)
+      task?.cancel()
+    }
   }
 
   func didReceive(data: Data) {
@@ -371,8 +396,13 @@ private final class RequestHandler {
       info.contentLength = length
     }
     if info.contentType == nil {
+      // Prefer the server's MIME; else derive from the URL extension (the
+      // loader only accepts whitelisted extensions, so this is reliable).
+      // Hardcoding MP4 here mislabels audio sources (.mp3/.wav) and can make
+      // AVFoundation fail to parse them.
       let mime = entry.contentType
       let type = mime.flatMap { UTType(mimeType: $0)?.identifier }
+        ?? UTType(filenameExtension: originalURL.pathExtension)?.identifier
       info.contentType = type ?? UTType.mpeg4Movie.identifier
     }
     info.isByteRangeAccessSupported = true

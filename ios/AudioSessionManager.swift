@@ -38,6 +38,14 @@ final class AudioSessionManager {
     escalate(options: muted ? [.mixWithOthers] : Self.options(for: mixMode))
   }
 
+  /// Category pre-arming for auto-PiP at view mount: `.playback` is required
+  /// for the system to auto-enter PiP on backgrounding, but mounting must
+  /// never interrupt other audio — always mix; playback applies the real mode.
+  func prepareForPictureInPicture() {
+    guard Self.isManagementEnabled else { return }
+    escalate(options: [.mixWithOthers])
+  }
+
   private func escalate(options: AVAudioSession.CategoryOptions) {
     guard !escalated || appliedOptions != options else { return }
     let session = AVAudioSession.sharedInstance()

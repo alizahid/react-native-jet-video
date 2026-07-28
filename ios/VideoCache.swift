@@ -8,8 +8,16 @@ import Foundation
 final class VideoCache {
   static let shared = VideoCache()
 
-  /// Total cache budget on disk. Configurable via `configureCache`.
-  var maxSizeBytes: Int64 = 1024 * 1024 * 1024
+  /// Total cache budget on disk. Read/written on `queue` only — use
+  /// `configure(maxSizeBytes:)` from other threads.
+  private var maxSizeBytes: Int64 = 1024 * 1024 * 1024
+
+  func configure(maxSizeBytes: Int64) {
+    queue.async { [self] in
+      self.maxSizeBytes = maxSizeBytes
+    }
+    enforceLimit()
+  }
 
   private let queue = DispatchQueue(label: "com.jetvideo.cache")
   private let directory: URL

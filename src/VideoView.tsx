@@ -31,6 +31,11 @@ function notMounted(): never {
   throw new Error('VideoView is not mounted')
 }
 
+// Promise-returning methods reject instead of throwing synchronously.
+function notMountedAsync(): Promise<never> {
+  return Promise.reject(new Error('VideoView is not mounted'))
+}
+
 export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
   function VideoView(props, ref) {
     const {
@@ -84,15 +89,20 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         play: () => (hybrid.current ?? notMounted()).play(),
         pause: () => (hybrid.current ?? notMounted()).pause(),
         seek: (seconds: number) =>
-          (hybrid.current ?? notMounted()).seek(seconds),
+          hybrid.current ? hybrid.current.seek(seconds) : notMountedAsync(),
         getCurrentTime: () => (hybrid.current ?? notMounted()).getCurrentTime(),
         enterFullscreen: () =>
-          (hybrid.current ?? notMounted()).enterFullscreen(),
-        exitFullscreen: () => (hybrid.current ?? notMounted()).exitFullscreen(),
+          hybrid.current ? hybrid.current.enterFullscreen() : notMountedAsync(),
+        exitFullscreen: () =>
+          hybrid.current ? hybrid.current.exitFullscreen() : notMountedAsync(),
         startPictureInPicture: () =>
-          (hybrid.current ?? notMounted()).startPictureInPicture(),
+          hybrid.current
+            ? hybrid.current.startPictureInPicture()
+            : notMountedAsync(),
         stopPictureInPicture: () =>
-          (hybrid.current ?? notMounted()).stopPictureInPicture(),
+          hybrid.current
+            ? hybrid.current.stopPictureInPicture()
+            : notMountedAsync(),
       }),
       []
     )

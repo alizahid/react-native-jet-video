@@ -25,6 +25,10 @@ final class PlayerEngine {
 
   private var currentSource: VideoSource?
   private var resumeTime: Double = 0
+  // Set when the loaded item reports an indefinite duration. A live stream
+  // must never be resumed at a wall-clock position after hibernation — the
+  // old offset points into a sliding window that has since moved.
+  private var isLiveStream = false
 
   var loop = false
   var isMuted: Bool {
@@ -36,6 +40,9 @@ final class PlayerEngine {
     set { player.volume = Float(newValue) }
   }
   var currentTime: Double {
+    if isHibernated {
+      return resumeTime
+    }
     let time = player.currentTime()
     return time.isValid ? max(0, time.seconds) : 0
   }
@@ -104,6 +111,7 @@ final class PlayerEngine {
     currentSource = source
     isHibernated = false
     resumeTime = 0
+    isLiveStream = false
 
     detachItem()
     reachedEnd = false
@@ -128,7 +136,7 @@ final class PlayerEngine {
   /// when the view leaves the window — a covered screen costs ~nothing.
   func hibernate() {
     guard !isHibernated, player.currentItem != nil else { return }
-    resumeTime = currentTime
+    resumeTime = isLiveStream ? 0 : currentTime
     isHibernated = true
     detachItem()
   }
@@ -144,6 +152,12 @@ final class PlayerEngine {
       player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
     }
     resumeTime = 0
+    // An engine that hibernated in .error has a fresh item now — report it as
+    // loading so readiness can transition normally (and the coordinator
+    // doesn't burn a retry on an already-rebuilt item).
+    if status == .error {
+      transition(to: .loading, reason: .system)
+    }
   }
 
   /// Rebuilds a failed item from scratch. Transient failures (decoder
@@ -211,6 +225,13 @@ final class PlayerEngine {
   }
 
   func seek(to seconds: Double, completion: @escaping () -> Void) {
+    if isHibernated {
+      // No item to seek — retarget the wake resume position instead.
+      resumeTime = max(0, seconds)
+      reachedEnd = false
+      DispatchQueue.main.async { completion() }
+      return
+    }
     let time = CMTime(seconds: seconds, preferredTimescale: 600)
     reachedEnd = false
     player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
@@ -220,16 +241,25 @@ final class PlayerEngine {
 
   // MARK: - Observation
 
+  // Both observers guard against stale delivery: their blocks are enqueued to
+  // main from AVFoundation's threads, so a block can still run after
+  // setSource/hibernate replaced the item it was observing — acting on it
+  // would corrupt the new item's state machine (or, with loop on, auto-play
+  // the wrong source).
   private func attachObservers(to item: AVPlayerItem) {
-    itemStatusObservation = item.observe(\.status) { [weak self] _, _ in
-      DispatchQueue.main.async { self?.itemStatusChanged() }
+    itemStatusObservation = item.observe(\.status) { [weak self, weak item] _, _ in
+      DispatchQueue.main.async {
+        guard let self, let item, item === self.player.currentItem else { return }
+        self.itemStatusChanged(for: item)
+      }
     }
     endObserver = NotificationCenter.default.addObserver(
       forName: AVPlayerItem.didPlayToEndTimeNotification,
       object: item,
       queue: .main
-    ) { [weak self] _ in
-      self?.itemDidPlayToEnd()
+    ) { [weak self, weak item] _ in
+      guard let self, let item, item === player.currentItem else { return }
+      itemDidPlayToEnd()
     }
   }
 
@@ -280,14 +310,14 @@ final class PlayerEngine {
 
   // MARK: - State machine
 
-  private func itemStatusChanged() {
-    guard let item = player.currentItem else { return }
+  private func itemStatusChanged(for item: AVPlayerItem) {
     switch item.status {
     case .readyToPlay:
       if !didEmitLoad {
         didEmitLoad = true
         let duration = item.duration
         let isLive = duration.isIndefinite
+        isLiveStream = isLive
         delegate?.engine(
           self,
           didLoad: LoadEvent(
@@ -318,6 +348,7 @@ final class PlayerEngine {
 
   private func itemDidPlayToEnd() {
     if loop {
+      pendingReason = .system
       player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
       player.play()
     } else {

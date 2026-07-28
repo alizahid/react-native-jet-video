@@ -93,6 +93,14 @@ final class PlaybackCoordinator {
   func register(_ view: HybridVideoView) {
     guard !members.contains(view) else { return }
     members.add(view)
+    // ObjectIdentifier is a raw pointer: a new view allocated at a dead
+    // view's address must not inherit its stale tracking (a spent retry
+    // budget would silently disable error recovery for the new view).
+    let id = ObjectIdentifier(view)
+    lastRects[id] = nil
+    lastFractions[id] = nil
+    offscreenTicks[id] = nil
+    retryCounts[id] = nil
     dirty = true
     startDisplayLinkIfNeeded()
   }

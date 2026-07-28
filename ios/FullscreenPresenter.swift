@@ -98,9 +98,12 @@ final class FullscreenPresenter: NSObject {
     if let finishedView, finishedView.engine === finishedEngine {
       // Hand rendering back to the inline layer, then unveil it only once it
       // has a frame — removing the controller's view before the layer renders
-      // flashes black at the inline rect.
+      // flashes black at the inline rect. In controls mode the embedded
+      // controller owns rendering; the inline layer must stay blank.
       let surface = finishedView.view as? PlayerLayerView
-      surface?.player = finishedEngine?.player
+      if !finishedView.hasEmbeddedControls {
+        surface?.player = finishedEngine?.player
+      }
       finishedView.fullscreenExitPlaybackIntent(wasPlaying: wasPlayingAtExitStart)
       finishedView.fullscreenTransition(active: false)
       if let finishedController {
