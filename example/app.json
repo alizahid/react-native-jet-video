@@ -8,10 +8,15 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "jetvideo.example",
-      "infoPlist": {
-        "UIBackgroundModes": ["audio"]
-      }
-    }
+      "bundleIdentifier": "jetvideo.example"
+    },
+    "plugins": [
+      [
+        "react-native-jet-video",
+        {
+          "supportsPictureInPicture": true
+        }
+      ]
+    ]
   }
 }

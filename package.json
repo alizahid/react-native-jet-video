@@ -21,6 +21,10 @@
       "react-native": "./src/index.ts",
       "default": "./lib/module/index.js"
     },
+    "./expo-plugin": {
+      "types": "./expo-plugin/index.d.ts",
+      "default": "./expo-plugin/index.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./lib/module/index.js",
@@ -29,6 +33,8 @@
   "react-native": "src/index",
   "types": "./lib/typescript/src/index.d.ts",
   "files": [
+    "app.plugin.js",
+    "expo-plugin",
     "src",
     "lib",
     "nitrogen",

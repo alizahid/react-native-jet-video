@@ -167,7 +167,25 @@ HLS streams are **not** disk-cached (AVPlayer buffers them in memory); caching a
 ## Picture-in-Picture setup
 
 1. Set `allowsPictureInPicture` on the view. That one flag enables the PiP methods **and** automatic PiP: backgrounding the app pops the currently playing video into a PiP window.
-2. In Xcode, enable **Background Modes → Audio, AirPlay, and Picture in Picture** for your app target (adds `UIBackgroundModes: [audio]` to Info.plist).
+2. Declare the `audio` background mode for your app target:
+   - **Expo:** add the config plugin to your app config, then run prebuild:
+
+     ```json
+     "plugins": [
+       ["react-native-jet-video", { "supportsPictureInPicture": true }]
+     ]
+     ```
+
+     Or, in a TypeScript app config, import it for typed options:
+
+     ```ts
+     import { withJetVideo } from 'react-native-jet-video/expo-plugin'
+
+     plugins: [withJetVideo({ supportsPictureInPicture: true })]
+     ```
+
+     The plugin also accepts `supportsBackgroundPlayback` to keep audio playing when the app is backgrounded without PiP.
+   - **Bare React Native:** in Xcode, enable **Background Modes → Audio, AirPlay, and Picture in Picture** (adds `UIBackgroundModes: [audio]` to Info.plist).
 
 `startPictureInPicture()` rejects if PiP isn't possible (unsupported device, missing background mode). Note: the iOS *simulator* only supports PiP on iPad simulators; test iPhone PiP on a device.
 
