@@ -64,6 +64,15 @@ configureAutoplay({ minVisibleFraction: 0.6, hysteresis: 0.15 })
 
 Use `coordinatorGroup="stories"` to run independent elections for separate lists on one screen.
 
+### Memory management is automatic
+
+Video feeds are memory-hungry by default; the library keeps them flat no matter how deep your app goes:
+
+- **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed.
+- **Covered screens hibernate.** When a screen with videos is pushed under another (navigation stacks, full-screen modals), each video releases its entire native player stack — buffers, network connections, decoder sessions — keeping only the source, playhead, and poster. Navigate back and it rebuilds transparently (from the disk cache when possible) and resumes where it left off. A 10-deep stack of video feeds costs roughly the same memory as one.
+- **Transient failures self-heal.** If a visible video errors (decoder pressure, flaky network), it's automatically rebuilt and retried a bounded number of times instead of staying black.
+- **Posters are downsampled** to screen-size pixels at decode, so full-resolution poster URLs don't balloon memory.
+
 ## Installation
 
 ```sh

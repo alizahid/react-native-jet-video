@@ -6,11 +6,13 @@ import { Feed } from './screens/Feed'
 import { Fullscreen } from './screens/Fullscreen'
 import { PictureInPicture } from './screens/PictureInPicture'
 import { RefMethods } from './screens/RefMethods'
+import { Stacked } from './screens/Stacked'
 
 const SCREENS = {
   BasicPlayback: BasicPlayback,
   RefMethods: RefMethods,
   Feed: Feed,
+  Stacked: Stacked,
   Fullscreen: Fullscreen,
   PictureInPicture: PictureInPicture,
   Cache: Cache,

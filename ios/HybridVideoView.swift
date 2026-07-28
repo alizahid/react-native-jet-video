@@ -18,6 +18,12 @@ class HybridVideoView: HybridVideoViewSpec {
   var isInPictureInPicture = false
   var isFullscreen = false
   private var coordinator: PlaybackCoordinator?
+  private var hibernateWorkItem: DispatchWorkItem?
+
+  /// Grace before tearing the item down on window detach, so transient
+  /// detaches (navigation transitions, interactive-pop cancels, view
+  /// reordering) don't thrash rebuild cycles.
+  private static let hibernateGraceSeconds: TimeInterval = 1.0
 
   var view: UIView { surface }
 
@@ -284,6 +290,12 @@ class HybridVideoView: HybridVideoViewSpec {
     isInPictureInPicture = active
     coordinator?.noteStateInvalidated()
     onPictureInPictureChange?(active)
+    // PiP ended while the owning screen is covered: nothing re-triggers
+    // didMoveToWindow, so release the item from here.
+    if !active, surface.window == nil, !isFullscreen {
+      engine.pause(reason: .system)
+      scheduleHibernate()
+    }
   }
 
   private func updatePiPSetup() {
@@ -369,7 +381,7 @@ class HybridVideoView: HybridVideoViewSpec {
   // MARK: - Autoplay + coordination
 
   private func applyAutoplay() {
-    guard source != nil else { return }
+    guard source != nil, surface.window != nil else { return }
     if autoplayMode == .always {
       engine.play(reason: .system)
     }
@@ -380,12 +392,44 @@ class HybridVideoView: HybridVideoViewSpec {
     if surface.window == nil {
       if !isInPictureInPicture, !isFullscreen {
         engine.pause(reason: .system)
+        scheduleHibernate()
       }
-    } else if controls, embeddedController == nil {
-      updateControlsSurface()
     } else {
-      updatePiPSetup()
+      hibernateWorkItem?.cancel()
+      hibernateWorkItem = nil
+      if engine.isHibernated {
+        engine.wake()
+      }
+      // Props (including source) are set before the view joins a window, so
+      // autoplay for a still-loading source applies here, not at prop-set.
+      if engine.status == .loading {
+        applyAutoplay()
+      }
+      if controls, embeddedController == nil {
+        updateControlsSurface()
+      } else {
+        updatePiPSetup()
+      }
     }
+  }
+
+  /// A view that stays off-window past the grace period releases its whole
+  /// AVPlayerItem stack (buffers, resource loader, decoder session) — so a
+  /// deep navigation stack of video feeds costs only posters. The engine
+  /// keeps the source + playhead and rebuilds on reattach.
+  private func scheduleHibernate() {
+    hibernateWorkItem?.cancel()
+    let work = DispatchWorkItem { [weak self] in
+      guard let self else { return }
+      hibernateWorkItem = nil
+      guard surface.window == nil, !isInPictureInPicture, !isFullscreen else { return }
+      if posterUri != nil {
+        posterView.isHidden = false
+      }
+      engine.hibernate()
+    }
+    hibernateWorkItem = work
+    DispatchQueue.main.asyncAfter(deadline: .now() + Self.hibernateGraceSeconds, execute: work)
   }
 
   private func updateCoordinatorRegistration() {

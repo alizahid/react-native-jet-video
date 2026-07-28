@@ -22,11 +22,12 @@ final class CachingResourceLoader: NSObject {
   private let operationQueue: OperationQueue
   private var handlers: [AVAssetResourceLoadingRequest: RequestHandler] = [:]
   private var taskRouter: [Int: RequestHandler] = [:]
-  private lazy var session: URLSession = URLSession(
-    configuration: .default,
-    delegate: self,
-    delegateQueue: operationQueue
-  )
+  // Created on first network miss (cache-served sources never need one).
+  // NSURLSession retains its delegate until invalidated, so lifecycle is
+  // managed by an explicit invalidate() — NOT deinit: with a live session
+  // deinit can never run, and creating the lazy session during deinit hands
+  // CFNetwork a half-deallocated delegate (use-after-free).
+  private var session: URLSession?
 
   init(originalURL: URL, headers: [String: String]) {
     self.originalURL = originalURL
@@ -39,8 +40,31 @@ final class CachingResourceLoader: NSObject {
   }
 
   deinit {
-    session.invalidateAndCancel()
     VideoCache.shared.enforceLimit()
+  }
+
+  /// Cancels all in-flight work and breaks the session→delegate retain so the
+  /// loader can deallocate. Must be called when the owning item is detached;
+  /// safe to call multiple times and from any thread.
+  func invalidate() {
+    queue.async { [self] in
+      for handler in handlers.values {
+        handler.cancel()
+      }
+      handlers.removeAll()
+      taskRouter.removeAll()
+      session?.invalidateAndCancel()
+      session = nil
+    }
+  }
+
+  private func networkSession() -> URLSession {
+    if let session {
+      return session
+    }
+    let session = URLSession(configuration: .default, delegate: self, delegateQueue: operationQueue)
+    self.session = session
+    return session
   }
 
   /// The custom-scheme URL AVPlayer should load, or nil when this source
@@ -76,7 +100,7 @@ final class CachingResourceLoader: NSObject {
       headers: headers,
       makeTask: { [weak self] request, handler in
         guard let self else { return nil }
-        let task = session.dataTask(with: request)
+        let task = networkSession().dataTask(with: request)
         taskRouter[task.taskIdentifier] = handler
         return task
       },
@@ -325,7 +349,7 @@ private final class RequestHandler {
     }
     // The network stream ended: either the window is done, or the tail of the
     // requested window is now in cache (a competing handler fetched it).
-    if let dataRequest = loadingRequest.dataRequest,
+    if loadingRequest.dataRequest != nil,
        let end = endOffset, currentOffset < end,
        entry.read(at: currentOffset, maxLength: 1) != nil {
       serveFromCache()

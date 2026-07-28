@@ -19,6 +19,10 @@ final class PlaybackCoordinator {
   static var minVisibleFraction: Double = 0.5
   static var hysteresis: Double = 0.10
   static let debounceTicks = 2
+  /// How many times a visible errored video is rebuilt before giving up.
+  /// Covers transient failures (decoder pressure, flaky network); reset on
+  /// source change.
+  static let maxErrorRetries = 2
   /// How much closer to the screen centre (normalized per-axis) a challenger
   /// must be to dethrone an incumbent of comparable visibility.
   static let centerMargin: Double = 0.05
@@ -43,6 +47,7 @@ final class PlaybackCoordinator {
   private var lastRects: [ObjectIdentifier: CGRect] = [:]
   private var lastFractions: [ObjectIdentifier: Double] = [:]
   private var offscreenTicks: [ObjectIdentifier: Int] = [:]
+  private var retryCounts: [ObjectIdentifier: Int] = [:]
   private var dirty = true
   private var backgrounded = false
   private var lifecycleObservers: [NSObjectProtocol] = []
@@ -88,7 +93,6 @@ final class PlaybackCoordinator {
   func register(_ view: HybridVideoView) {
     guard !members.contains(view) else { return }
     members.add(view)
-    view.engine.warmBufferOnly = true
     dirty = true
     startDisplayLinkIfNeeded()
   }
@@ -96,11 +100,11 @@ final class PlaybackCoordinator {
   func unregister(_ view: HybridVideoView) {
     guard members.contains(view) else { return }
     members.remove(view)
-    view.engine.warmBufferOnly = false
     let id = ObjectIdentifier(view)
     lastRects[id] = nil
     lastFractions[id] = nil
     offscreenTicks[id] = nil
+    retryCounts[id] = nil
     if winner === view {
       winner = nil
     }
@@ -133,6 +137,7 @@ final class PlaybackCoordinator {
 
   func noteSourceChanged(_ view: HybridVideoView) {
     view.autoplayOverride = .none
+    retryCounts[ObjectIdentifier(view)] = nil
     dirty = true
   }
 
@@ -157,6 +162,7 @@ final class PlaybackCoordinator {
     lastRects.removeAll()
     lastFractions.removeAll()
     offscreenTicks.removeAll()
+    retryCounts.removeAll()
     challengerId = nil
     challengerTicks = 0
   }
@@ -199,6 +205,16 @@ final class PlaybackCoordinator {
         }
       } else {
         offscreenTicks[id] = 0
+      }
+
+      // A visible errored video gets rebuilt (bounded retries): transient
+      // failures like decoder-session pressure from a heavy feed must not
+      // leave a black cell on screen.
+      if view.engine.status == .error, fraction >= Self.minVisibleFraction,
+         retryCounts[id, default: 0] < Self.maxErrorRetries {
+        retryCounts[id, default: 0] += 1
+        view.engine.retry()
+        dirty = true
       }
 
       // A user-played video that drops below the threshold loses its override:
@@ -329,11 +345,9 @@ final class PlaybackCoordinator {
     if winner !== view {
       if let old = winner {
         pauseIfPlaying(old)
-        old.engine.warmBufferOnly = true
       }
       winner = view
     }
-    view.engine.warmBufferOnly = false
     switch view.engine.status {
     case .playing, .buffering, .error:
       break

@@ -1,4 +1,5 @@
 import AVFoundation
+import ImageIO
 import UIKit
 
 /// A plain UIView backed by an AVPlayerLayer — the chrome-less render surface
@@ -77,7 +78,7 @@ final class PosterView: UIImageView {
 
     guard let uri, let url = URL(string: uri) else { return }
     let task = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-      guard let self, let data, let image = UIImage(data: data) else { return }
+      guard let self, let data, let image = Self.decodeDownsampled(data) else { return }
       DispatchQueue.main.async {
         guard self.currentUri == uri else { return }
         self.image = image
@@ -85,5 +86,23 @@ final class PosterView: UIImageView {
     }
     loadTask = task
     task.resume()
+  }
+
+  /// Decodes capped at screen-size pixels: a feed of full-resolution posters
+  /// would otherwise dominate memory (a 4000px image is ~35MB+ decoded).
+  private static func decodeDownsampled(_ data: Data) -> UIImage? {
+    let bounds = UIScreen.main.bounds.size
+    let maxPixelSize = max(bounds.width, bounds.height) * UIScreen.main.scale
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+    ]
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+      return UIImage(data: data)
+    }
+    return UIImage(cgImage: thumbnail)
   }
 }

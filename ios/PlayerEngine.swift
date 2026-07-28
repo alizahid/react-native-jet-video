@@ -18,6 +18,13 @@ final class PlayerEngine {
 
   private(set) var status: PlaybackStatus = .idle
   private(set) var sourceUri: String?
+  /// True while the item is torn down because the view is detached from any
+  /// window (covered screen in a navigation stack). The source and resume
+  /// position are kept so `wake()` can rebuild transparently.
+  private(set) var isHibernated = false
+
+  private var currentSource: VideoSource?
+  private var resumeTime: Double = 0
 
   var loop = false
   var isMuted: Bool {
@@ -39,19 +46,13 @@ final class PlayerEngine {
     }
   }
 
-  /// Coordinated views that are not the elected winner keep only a small
-  /// forward buffer: warm enough for an instant start when elected, without
-  /// buffering the whole feed. The winner (and uncoordinated views) get the
-  /// system default.
-  var warmBufferOnly = false {
-    didSet {
-      guard warmBufferOnly != oldValue else { return }
-      applyBufferPolicy()
-    }
-  }
-
+  /// A player that isn't actively playing keeps only a small forward buffer:
+  /// warm enough for an instant start, without buffering the whole feed. The
+  /// playing player gets the system default. Applied on every
+  /// timeControlStatus change and item attach.
   private func applyBufferPolicy() {
-    player.currentItem?.preferredForwardBufferDuration = warmBufferOnly ? 2 : 0
+    let active = player.timeControlStatus != .paused
+    player.currentItem?.preferredForwardBufferDuration = active ? 0 : 2
   }
 
   /// Invoked synchronously right before playback starts, so the audio session
@@ -73,7 +74,10 @@ final class PlayerEngine {
   init() {
     player.automaticallyWaitsToMinimizeStalling = true
     timeControlObservation = player.observe(\.timeControlStatus) { [weak self] _, _ in
-      DispatchQueue.main.async { self?.recomputeStatus() }
+      DispatchQueue.main.async {
+        self?.applyBufferPolicy()
+        self?.recomputeStatus()
+      }
     }
     rebuildTimeObserver()
   }
@@ -83,20 +87,27 @@ final class PlayerEngine {
       player.removeTimeObserver(token)
     }
     detachItemObservers()
+    resourceLoader?.invalidate()
   }
 
   // MARK: - Source
 
   func setSource(_ source: VideoSource?) {
     let uri = source?.uri
-    guard uri != sourceUri else { return }
+    guard uri != sourceUri else {
+      // Same uri re-set (list re-render): keep playback/hibernation state,
+      // just refresh the stored source so headers/cache flags stay current.
+      if source != nil { currentSource = source }
+      return
+    }
     sourceUri = uri
+    currentSource = source
+    isHibernated = false
+    resumeTime = 0
 
-    detachItemObservers()
+    detachItem()
     reachedEnd = false
     didEmitLoad = false
-    player.replaceCurrentItem(with: nil)
-    resourceLoader = nil
 
     guard let source, let url = URL(string: source.uri) else {
       transition(to: .idle, reason: .system)
@@ -106,6 +117,57 @@ final class PlayerEngine {
       return
     }
 
+    attachItem(source: source, url: url)
+    transition(to: .loading, reason: .system)
+  }
+
+  // MARK: - Hibernation
+
+  /// Tears down the AVPlayerItem (buffers, resource loader, decoder claims)
+  /// while keeping the source and playhead so `wake()` can rebuild. Called
+  /// when the view leaves the window — a covered screen costs ~nothing.
+  func hibernate() {
+    guard !isHibernated, player.currentItem != nil else { return }
+    resumeTime = currentTime
+    isHibernated = true
+    detachItem()
+  }
+
+  /// Rebuilds the item after hibernation and restores the playhead. The disk
+  /// cache makes this cheap: previously streamed ranges re-serve from disk.
+  func wake() {
+    guard isHibernated else { return }
+    isHibernated = false
+    guard let source = currentSource, let url = URL(string: source.uri) else { return }
+    attachItem(source: source, url: url)
+    if resumeTime > 0.1 {
+      player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
+    }
+    resumeTime = 0
+  }
+
+  /// Rebuilds a failed item from scratch. Transient failures (decoder
+  /// pressure, flaky network) are recoverable; without this an errored view
+  /// stayed black until its cell recycled.
+  func retry() {
+    guard status == .error, let source = currentSource, let url = URL(string: source.uri) else { return }
+    isHibernated = false
+    resumeTime = 0
+    detachItem()
+    reachedEnd = false
+    didEmitLoad = false
+    attachItem(source: source, url: url)
+    transition(to: .loading, reason: .system)
+  }
+
+  private func detachItem() {
+    detachItemObservers()
+    player.replaceCurrentItem(with: nil)
+    resourceLoader?.invalidate()
+    resourceLoader = nil
+  }
+
+  private func attachItem(source: VideoSource, url: URL) {
     let asset: AVURLAsset
     if source.cache ?? true, let assetURL = CachingResourceLoader.assetURL(for: url) {
       let loader = CachingResourceLoader(originalURL: url, headers: source.headers ?? [:])
@@ -123,12 +185,17 @@ final class PlayerEngine {
     attachObservers(to: item)
     player.replaceCurrentItem(with: item)
     applyBufferPolicy()
-    transition(to: .loading, reason: .system)
   }
 
   // MARK: - Controls
 
   func play(reason: PlaybackChangeReason) {
+    if isHibernated {
+      wake()
+    }
+    if status == .error {
+      retry()
+    }
     willPlay?()
     pendingReason = reason
     if reachedEnd {
