@@ -153,12 +153,6 @@ namespace margelo::nitro::nitrovideo {
     inline void setAllowsPictureInPicture(bool allowsPictureInPicture) noexcept override {
       _swiftPart.setAllowsPictureInPicture(std::forward<decltype(allowsPictureInPicture)>(allowsPictureInPicture));
     }
-    inline bool getAutoEnterPiPOnBackground() noexcept override {
-      return _swiftPart.getAutoEnterPiPOnBackground();
-    }
-    inline void setAutoEnterPiPOnBackground(bool autoEnterPiPOnBackground) noexcept override {
-      _swiftPart.setAutoEnterPiPOnBackground(std::forward<decltype(autoEnterPiPOnBackground)>(autoEnterPiPOnBackground));
-    }
     inline double getProgressUpdateInterval() noexcept override {
       return _swiftPart.getProgressUpdateInterval();
     }

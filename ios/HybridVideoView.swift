@@ -126,12 +126,9 @@ class HybridVideoView: HybridVideoViewSpec {
   var allowsPictureInPicture: Bool = false {
     didSet {
       embeddedController?.allowsPictureInPicturePlayback = allowsPictureInPicture
+      embeddedController?.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
       updatePiPSetup()
     }
-  }
-
-  var autoEnterPiPOnBackground: Bool = false {
-    didSet { updatePiPSetup() }
   }
 
   var progressUpdateInterval: Double = 500 {
@@ -246,6 +243,11 @@ class HybridVideoView: HybridVideoViewSpec {
 
   // MARK: - Picture in Picture
 
+  func pictureInPictureWillStart() {
+    isInPictureInPicture = true
+    coordinator?.noteStateInvalidated()
+  }
+
   func pictureInPictureDidChange(active: Bool) {
     isInPictureInPicture = active
     coordinator?.noteStateInvalidated()
@@ -254,14 +256,9 @@ class HybridVideoView: HybridVideoViewSpec {
 
   private func updatePiPSetup() {
     guard allowsPictureInPicture, !controls, surface.window != nil else { return }
-    pipManager.setup(
-      playerLayer: surface.playerLayer,
-      autoEnterOnBackground: autoEnterPiPOnBackground
-    )
-    if autoEnterPiPOnBackground {
-      // Auto-entering PiP on background requires the .playback category up front.
-      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode)
-    }
+    pipManager.setup(playerLayer: surface.playerLayer)
+    // Auto-entering PiP on background requires the .playback category up front.
+    AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode)
   }
 
   // MARK: - Engine management
@@ -317,6 +314,7 @@ class HybridVideoView: HybridVideoViewSpec {
       controller.player = engine.player
       controller.videoGravity = PlayerLayerView.gravity(for: resizeMode)
       controller.allowsPictureInPicturePlayback = allowsPictureInPicture
+      controller.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
       controller.delegate = controllerDelegateProxy
       parent.addChild(controller)
       controller.view.frame = surface.bounds
@@ -402,6 +400,10 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
   ) {
     owner?.isFullscreen = false
     owner?.onFullscreenChange?(false)
+  }
+
+  func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
+    owner?.pictureInPictureWillStart()
   }
 
   func playerViewControllerDidStartPictureInPicture(_ playerViewController: AVPlayerViewController) {

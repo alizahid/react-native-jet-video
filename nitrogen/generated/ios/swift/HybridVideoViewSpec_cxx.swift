@@ -239,17 +239,6 @@ open class HybridVideoViewSpec_cxx {
     }
   }
   
-  public final var autoEnterPiPOnBackground: Bool {
-    @inline(__always)
-    get {
-      return self.__implementation.autoEnterPiPOnBackground
-    }
-    @inline(__always)
-    set {
-      self.__implementation.autoEnterPiPOnBackground = newValue
-    }
-  }
-  
   public final var progressUpdateInterval: Double {
     @inline(__always)
     get {

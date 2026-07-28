@@ -19,7 +19,6 @@ export function PictureInPicture() {
         muted
         loop
         allowsPictureInPicture
-        autoEnterPiPOnBackground
         style={styles.video}
         onPictureInPictureChange={setIsActive}
       />
@@ -50,7 +49,7 @@ export function PictureInPicture() {
         PiP active: {String(isActive)} {log ? `· ${log}` : ''}
       </Text>
       <Text style={styles.note}>
-        Also try backgrounding the app (autoEnterPiPOnBackground).
+        Also try backgrounding the app — the playing video pops into PiP.
       </Text>
     </View>
   )

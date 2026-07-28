@@ -32,8 +32,6 @@ namespace margelo::nitro::nitrovideo {
       prototype.registerHybridSetter("posterUri", &HybridVideoViewSpec::setPosterUri);
       prototype.registerHybridGetter("allowsPictureInPicture", &HybridVideoViewSpec::getAllowsPictureInPicture);
       prototype.registerHybridSetter("allowsPictureInPicture", &HybridVideoViewSpec::setAllowsPictureInPicture);
-      prototype.registerHybridGetter("autoEnterPiPOnBackground", &HybridVideoViewSpec::getAutoEnterPiPOnBackground);
-      prototype.registerHybridSetter("autoEnterPiPOnBackground", &HybridVideoViewSpec::setAutoEnterPiPOnBackground);
       prototype.registerHybridGetter("progressUpdateInterval", &HybridVideoViewSpec::getProgressUpdateInterval);
       prototype.registerHybridSetter("progressUpdateInterval", &HybridVideoViewSpec::setProgressUpdateInterval);
       prototype.registerHybridGetter("audioMixMode", &HybridVideoViewSpec::getAudioMixMode);

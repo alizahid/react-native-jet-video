@@ -59,7 +59,6 @@ namespace margelo::nitro::nitrovideo::views {
     CachedProp<bool> controls;
     CachedProp<std::optional<std::string>> posterUri;
     CachedProp<bool> allowsPictureInPicture;
-    CachedProp<bool> autoEnterPiPOnBackground;
     CachedProp<double> progressUpdateInterval;
     CachedProp<AudioMixMode> audioMixMode;
     CachedProp<std::optional<std::string>> coordinatorGroup;

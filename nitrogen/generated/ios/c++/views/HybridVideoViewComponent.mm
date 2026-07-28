@@ -124,11 +124,6 @@ using namespace margelo::nitro::nitrovideo::views;
     swiftPart.setAllowsPictureInPicture(newViewProps.allowsPictureInPicture.value);
     newViewProps.allowsPictureInPicture.isDirty = false;
   }
-  // autoEnterPiPOnBackground: boolean
-  if (newViewProps.autoEnterPiPOnBackground.isDirty) {
-    swiftPart.setAutoEnterPiPOnBackground(newViewProps.autoEnterPiPOnBackground.value);
-    newViewProps.autoEnterPiPOnBackground.isDirty = false;
-  }
   // progressUpdateInterval: number
   if (newViewProps.progressUpdateInterval.isDirty) {
     swiftPart.setProgressUpdateInterval(newViewProps.progressUpdateInterval.value);

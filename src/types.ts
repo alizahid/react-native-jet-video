@@ -65,9 +65,11 @@ export interface VideoViewProps {
   controls?: boolean
   /** Image shown until the first video frame is ready. */
   poster?: string
+  /**
+   * Enables Picture-in-Picture for this video — including automatically
+   * entering PiP with the currently playing video when the app is backgrounded.
+   */
   allowsPictureInPicture?: boolean
-  /** Automatically enter PiP when the app moves to the background. */
-  autoEnterPiPOnBackground?: boolean
   /** How often `onProgress` fires, in milliseconds. 0 disables it. Default 500. */
   progressUpdateInterval?: number
   /**

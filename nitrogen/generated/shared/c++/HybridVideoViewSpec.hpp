@@ -88,8 +88,6 @@ namespace margelo::nitro::nitrovideo {
       virtual void setPosterUri(const std::optional<std::string>& posterUri) = 0;
       virtual bool getAllowsPictureInPicture() = 0;
       virtual void setAllowsPictureInPicture(bool allowsPictureInPicture) = 0;
-      virtual bool getAutoEnterPiPOnBackground() = 0;
-      virtual void setAutoEnterPiPOnBackground(bool autoEnterPiPOnBackground) = 0;
       virtual double getProgressUpdateInterval() = 0;
       virtual void setProgressUpdateInterval(double progressUpdateInterval) = 0;
       virtual AudioMixMode getAudioMixMode() = 0;

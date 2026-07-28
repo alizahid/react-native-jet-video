@@ -61,7 +61,6 @@ export interface VideoViewProps extends HybridViewProps {
   controls: boolean
   posterUri?: string
   allowsPictureInPicture: boolean
-  autoEnterPiPOnBackground: boolean
   progressUpdateInterval: number
   audioMixMode: AudioMixMode
   coordinatorGroup?: string

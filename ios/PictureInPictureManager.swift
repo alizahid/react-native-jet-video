@@ -12,13 +12,15 @@ final class PictureInPictureManager: NSObject, AVPictureInPictureControllerDeleg
     super.init()
   }
 
-  func setup(playerLayer: AVPlayerLayer, autoEnterOnBackground: Bool) {
+  func setup(playerLayer: AVPlayerLayer) {
     guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
     if controller == nil || controller?.playerLayer !== playerLayer {
       controller = AVPictureInPictureController(playerLayer: playerLayer)
       controller?.delegate = self
     }
-    controller?.canStartPictureInPictureAutomaticallyFromInline = autoEnterOnBackground
+    // PiP-enabled videos auto-enter PiP when the app is backgrounded while
+    // they are playing — allowsPictureInPicture is the single switch.
+    controller?.canStartPictureInPictureAutomaticallyFromInline = true
   }
 
   func teardown() {
@@ -63,6 +65,12 @@ final class PictureInPictureManager: NSObject, AVPictureInPictureControllerDeleg
   }
 
   // MARK: - AVPictureInPictureControllerDelegate
+
+  func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+    // Flag before the app's didEnterBackground handlers run, so the
+    // coordinator/background logic doesn't pause the auto-entering video.
+    owner?.pictureInPictureWillStart()
+  }
 
   func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
     owner?.pictureInPictureDidChange(active: true)

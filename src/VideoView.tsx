@@ -43,7 +43,6 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
       controls = false,
       poster,
       allowsPictureInPicture = false,
-      autoEnterPiPOnBackground = false,
       progressUpdateInterval = 500,
       audioMixMode = 'mixWithOthers',
       coordinatorGroup,
@@ -124,7 +123,6 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         controls={controls}
         posterUri={poster}
         allowsPictureInPicture={allowsPictureInPicture}
-        autoEnterPiPOnBackground={autoEnterPiPOnBackground}
         progressUpdateInterval={progressUpdateInterval}
         audioMixMode={audioMixMode}
         coordinatorGroup={coordinatorGroup}

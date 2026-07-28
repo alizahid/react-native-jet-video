@@ -19,7 +19,6 @@ public protocol HybridVideoViewSpec_protocol: HybridObject, HybridView {
   var controls: Bool { get set }
   var posterUri: String? { get set }
   var allowsPictureInPicture: Bool { get set }
-  var autoEnterPiPOnBackground: Bool { get set }
   var progressUpdateInterval: Double { get set }
   var audioMixMode: AudioMixMode { get set }
   var coordinatorGroup: String? { get set }

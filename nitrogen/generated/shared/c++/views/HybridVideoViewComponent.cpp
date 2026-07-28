@@ -116,16 +116,6 @@ namespace margelo::nitro::nitrovideo::views {
         throw std::runtime_error(std::string("VideoView.allowsPictureInPicture: ") + exc.what());
       }
     }()),
-    autoEnterPiPOnBackground([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("autoEnterPiPOnBackground", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.autoEnterPiPOnBackground;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.autoEnterPiPOnBackground);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.autoEnterPiPOnBackground: ") + exc.what());
-      }
-    }()),
     progressUpdateInterval([&]() -> CachedProp<double> {
       try {
         const react::RawValue* rawValue = rawProps.at("progressUpdateInterval", nullptr, nullptr);
@@ -268,7 +258,6 @@ namespace margelo::nitro::nitrovideo::views {
       case hashString("controls"): return true;
       case hashString("posterUri"): return true;
       case hashString("allowsPictureInPicture"): return true;
-      case hashString("autoEnterPiPOnBackground"): return true;
       case hashString("progressUpdateInterval"): return true;
       case hashString("audioMixMode"): return true;
       case hashString("coordinatorGroup"): return true;

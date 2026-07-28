@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Breaking:** removed `autoEnterPiPOnBackground`. `allowsPictureInPicture`
+  alone now also auto-enters PiP with the currently playing video when the app
+  is backgrounded.
 - Transparent disk caching for progressive sources (MP4/MOV/M4A…): byte-range
   cache with write-through streaming, so partially streamed videos resume from
   disk across playbacks and app launches. LRU eviction (1 GB default).

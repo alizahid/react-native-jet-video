@@ -13,7 +13,6 @@
     "controls": true,
     "posterUri": true,
     "allowsPictureInPicture": true,
-    "autoEnterPiPOnBackground": true,
     "progressUpdateInterval": true,
     "audioMixMode": true,
     "coordinatorGroup": true,

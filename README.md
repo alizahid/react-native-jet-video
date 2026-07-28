@@ -73,8 +73,7 @@ Expo: works in a [development build](https://docs.expo.dev/develop/development-b
 | `resizeMode` | `'cover' \| 'contain' \| 'stretch'` | `'cover'` | |
 | `controls` | `boolean` | `false` | Native system playback controls |
 | `poster` | `string` | — | Image shown until the first frame renders |
-| `allowsPictureInPicture` | `boolean` | `false` | |
-| `autoEnterPiPOnBackground` | `boolean` | `false` | Enter PiP automatically on backgrounding |
+| `allowsPictureInPicture` | `boolean` | `false` | Enables PiP, incl. auto-PiP on backgrounding |
 | `progressUpdateInterval` | `number` | `500` | ms between `onProgress`; `0` disables |
 | `audioMixMode` | `'mixWithOthers' \| 'duckOthers' \| 'doNotMix'` | `'mixWithOthers'` | See audio section |
 | `coordinatorGroup` | `string` | — | Separate election groups |
@@ -142,7 +141,7 @@ HLS streams are **not** disk-cached (AVPlayer buffers them in memory); caching a
 
 ## Picture-in-Picture setup
 
-1. Set `allowsPictureInPicture` (and optionally `autoEnterPiPOnBackground`) on the view.
+1. Set `allowsPictureInPicture` on the view. That one flag enables the PiP methods **and** automatic PiP: backgrounding the app pops the currently playing video into a PiP window.
 2. In Xcode, enable **Background Modes → Audio, AirPlay, and Picture in Picture** for your app target (adds `UIBackgroundModes: [audio]` to Info.plist).
 
 `startPictureInPicture()` rejects if PiP isn't possible (unsupported device, missing background mode). Note: the iOS *simulator* only supports PiP on iPad simulators; test iPhone PiP on a device.
