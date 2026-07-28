@@ -4,23 +4,22 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "build:ios": "xcodebuild ONLY_ACTIVE_ARCH=YES -workspace ios/JetVideoExample.xcworkspace -UseNewBuildSystem=YES -scheme JetVideoExample -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
     "ios": "expo run:ios",
-    "pod": "pod install --project-directory=ios",
-    "prebuild": "expo prebuild --platform ios",
+    "pod": "expo prebuild --platform ios",
     "start": "expo start --dev-client"
   },
   "dependencies": {
     "@shopify/flash-list": "^2.3.2",
     "expo": "~57.0.1",
+    "expo-dev-client": "~57.0.4",
     "react": "19.2.8",
     "react-native": "0.86.2",
+    "react-native-jet-video": "file:..",
     "react-native-nitro-modules": "^0.36.3"
   },
   "devDependencies": {
-    "@react-native/typescript-config": "0.86.2",
-    "babel-preset-expo": "^57.0.1",
-    "expo-dev-client": "~57.0.4",
-    "react-native-monorepo-config": "^0.4.0"
+    "@babel/core": "^7.25.2",
+    "@types/react": "19.2.17",
+    "typescript": "^6.0.3"
   }
 }
