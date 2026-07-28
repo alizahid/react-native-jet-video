@@ -38,7 +38,12 @@ export interface LoadEvent {
 
 export interface ProgressEvent {
   currentTime: number
-  bufferedDuration: number
+  /**
+   * Absolute position (in seconds) up to which media is buffered contiguously
+   * from the playhead — draw this behind the scrubber. Equals `currentTime`
+   * when nothing ahead is buffered.
+   */
+  bufferedPosition: number
 }
 
 export interface PlaybackStateEvent {

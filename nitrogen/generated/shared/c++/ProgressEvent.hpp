@@ -40,11 +40,11 @@ namespace margelo::nitro::jetvideo {
   struct ProgressEvent final {
   public:
     double currentTime     SWIFT_PRIVATE;
-    double bufferedDuration     SWIFT_PRIVATE;
+    double bufferedPosition     SWIFT_PRIVATE;
 
   public:
     ProgressEvent() = default;
-    explicit ProgressEvent(double currentTime, double bufferedDuration): currentTime(currentTime), bufferedDuration(bufferedDuration) {}
+    explicit ProgressEvent(double currentTime, double bufferedPosition): currentTime(currentTime), bufferedPosition(bufferedPosition) {}
 
   public:
     friend bool operator==(const ProgressEvent& lhs, const ProgressEvent& rhs) = default;
@@ -61,13 +61,13 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::jetvideo::ProgressEvent(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "currentTime"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bufferedDuration")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bufferedPosition")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::ProgressEvent& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "currentTime"), JSIConverter<double>::toJSI(runtime, arg.currentTime));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "bufferedDuration"), JSIConverter<double>::toJSI(runtime, arg.bufferedDuration));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "bufferedPosition"), JSIConverter<double>::toJSI(runtime, arg.bufferedPosition));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -79,7 +79,7 @@ namespace margelo::nitro {
         return false;
       }
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "currentTime")))) return false;
-      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bufferedDuration")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bufferedPosition")))) return false;
       return true;
     }
   };

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Breaking:** `onProgress` now reports `bufferedPosition` — the absolute
+  position up to which media is buffered contiguously from the playhead
+  (what scrubbers draw) — replacing `bufferedDuration`, which was the
+  seconds-ahead runway and shrank as playback consumed the buffer.
+
 - Fullscreen now uses AVKit's native zoom transition — fullscreen expands out
   of the `VideoView` and collapses back into it (like expo-video) instead of
   sliding up as a modal.

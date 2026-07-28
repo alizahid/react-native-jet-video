@@ -18,8 +18,8 @@ public extension ProgressEvent {
   /**
    * Create a new instance of `ProgressEvent`.
    */
-  init(currentTime: Double, bufferedDuration: Double) {
-    self.init(currentTime, bufferedDuration)
+  init(currentTime: Double, bufferedPosition: Double) {
+    self.init(currentTime, bufferedPosition)
   }
 
   @inline(__always)
@@ -28,7 +28,7 @@ public extension ProgressEvent {
   }
   
   @inline(__always)
-  var bufferedDuration: Double {
-    return self.__bufferedDuration
+  var bufferedPosition: Double {
+    return self.__bufferedPosition
   }
 }

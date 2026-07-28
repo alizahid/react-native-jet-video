@@ -36,7 +36,7 @@ export function BasicPlayback() {
         }
         onProgress={(event) =>
           append(
-            `progress: ${event.currentTime.toFixed(1)}s (+${event.bufferedDuration.toFixed(1)}s buffered)`
+            `progress: ${event.currentTime.toFixed(1)}s (buffered to ${event.bufferedPosition.toFixed(1)}s)`
           )
         }
         onEnd={() => append('end')}

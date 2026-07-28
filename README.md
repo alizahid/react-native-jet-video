@@ -96,7 +96,7 @@ Expo: works in a [development build](https://docs.expo.dev/develop/development-b
 
 ### Events
 
-`onLoad({ duration, naturalSize, isLive })` · `onProgress({ currentTime, bufferedDuration })` · `onEnd()` · `onError({ code, message })` · `onPlaybackStateChange({ status, reason })` · `onFullscreenChange(isFullscreen)` · `onPictureInPictureChange(isActive)` · `onMutedChange(muted)` · `onVisibilityChange(visibleFraction)`
+`onLoad({ duration, naturalSize, isLive })` · `onProgress({ currentTime, bufferedPosition })` · `onEnd()` · `onError({ code, message })` · `onPlaybackStateChange({ status, reason })` · `onFullscreenChange(isFullscreen)` · `onPictureInPictureChange(isActive)` · `onMutedChange(muted)` · `onVisibilityChange(visibleFraction)`
 
 `status` is `idle | loading | readyToPlay | buffering | playing | paused | ended | error`. `reason` tells you **who** caused the change: `user`, `coordinator`, or `system` — so your UI can react to coordination without fighting it.
 

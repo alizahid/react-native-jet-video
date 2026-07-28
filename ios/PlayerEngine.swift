@@ -184,25 +184,31 @@ final class PlayerEngine {
     let interval = CMTime(seconds: progressIntervalMs / 1000, preferredTimescale: 600)
     timeObserverToken = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
       guard let self, self.player.currentItem != nil, time.isValid else { return }
+      let currentTime = max(0, time.seconds)
       self.delegate?.engine(
         self,
-        didProgress: ProgressEvent(currentTime: max(0, time.seconds), bufferedDuration: self.bufferedAhead())
+        didProgress: ProgressEvent(
+          currentTime: currentTime,
+          bufferedPosition: max(currentTime, self.bufferedPosition())
+        )
       )
     }
   }
 
-  private func bufferedAhead() -> Double {
+  /// Absolute position up to which media is buffered contiguously from the
+  /// playhead (the end of the loaded range containing it). Falls back to the
+  /// playhead itself when nothing ahead is buffered.
+  private func bufferedPosition() -> Double {
     guard let item = player.currentItem else { return 0 }
     let current = player.currentTime()
     for value in item.loadedTimeRanges {
       let range = value.timeRangeValue
-      if range.containsTime(current) || CMTimeCompare(range.start, current) > 0 {
-        let end = CMTimeAdd(range.start, range.duration)
-        let ahead = CMTimeSubtract(end, current).seconds
-        return ahead.isFinite ? max(0, ahead) : 0
+      if range.containsTime(current) {
+        let end = CMTimeAdd(range.start, range.duration).seconds
+        return end.isFinite ? max(0, end) : 0
       }
     }
-    return 0
+    return current.seconds.isFinite ? max(0, current.seconds) : 0
   }
 
   // MARK: - State machine
