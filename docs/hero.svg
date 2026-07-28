@@ -1,0 +1,128 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="react-native-jet-video — single-component video view for React Native with visibility autoplay, PiP, and caching">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#141b33"/>
+    </linearGradient>
+    <radialGradient id="glowTeal" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1050 60) scale(420)">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowIndigo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(180 400) scale(520)">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="vidPlaying" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e7490"/>
+      <stop offset="0.55" stop-color="#155e75"/>
+      <stop offset="1" stop-color="#134e4a"/>
+    </linearGradient>
+    <linearGradient id="vidPausedA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e1b4b"/>
+      <stop offset="1" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="vidPausedB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4c1d3d"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1.2" cy="1.2" r="1.2" fill="#ffffff" fill-opacity="0.045"/>
+    </pattern>
+    <style>
+      .sans { font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <rect width="1200" height="420" fill="url(#dots)"/>
+  <rect width="1200" height="420" fill="url(#glowTeal)"/>
+  <rect width="1200" height="420" fill="url(#glowIndigo)"/>
+
+  <!-- Title block -->
+  <text x="72" y="132" class="sans" font-size="42" font-weight="800" fill="#f8fafc" letter-spacing="-1">react-native-<tspan fill="url(#accent)">jet</tspan>-video</text>
+  <text x="72" y="170" class="sans" font-size="19" fill="#94a3b8">One component. The most visible video plays,</text>
+  <text x="72" y="196" class="sans" font-size="19" fill="#94a3b8">the rest wait their turn. All native.</text>
+
+  <!-- Feature chips -->
+  <g class="sans" font-size="14" font-weight="600">
+    <rect x="72" y="222" width="126" height="34" rx="17" fill="#0f172a" stroke="#293548"/>
+    <text x="135" y="244" fill="#7dd3fc" text-anchor="middle">Nitro-powered</text>
+    <rect x="210" y="222" width="128" height="34" rx="17" fill="#0f172a" stroke="#293548"/>
+    <text x="274" y="244" fill="#5eead4" text-anchor="middle">AVFoundation</text>
+    <rect x="350" y="222" width="130" height="34" rx="17" fill="#0f172a" stroke="#293548"/>
+    <text x="415" y="244" fill="#c4b5fd" text-anchor="middle">FlashList-ready</text>
+    <rect x="492" y="222" width="122" height="34" rx="17" fill="#0f172a" stroke="#293548"/>
+    <text x="553" y="244" fill="#fda4af" text-anchor="middle">PiP + caching</text>
+  </g>
+
+  <!-- Stats -->
+  <g class="sans">
+    <text x="72" y="316" font-size="30" font-weight="800" fill="#5eead4">1</text>
+    <text x="72" y="340" font-size="14" fill="#7c8aa5">video playing at a time</text>
+    <text x="252" y="316" font-size="30" font-weight="800" fill="#7dd3fc">0</text>
+    <text x="252" y="340" font-size="14" fill="#7c8aa5">JS scroll listeners</text>
+    <text x="412" y="316" font-size="30" font-weight="800" fill="#c4b5fd">1 GB</text>
+    <text x="412" y="340" font-size="14" fill="#7c8aa5">smart disk cache</text>
+  </g>
+
+  <!-- Code card -->
+  <g>
+    <rect x="640" y="64" width="260" height="292" rx="14" fill="#0a0f1c" stroke="#1f2a3f"/>
+    <circle cx="662" cy="86" r="4.5" fill="#f87171"/>
+    <circle cx="678" cy="86" r="4.5" fill="#fbbf24"/>
+    <circle cx="694" cy="86" r="4.5" fill="#34d399"/>
+    <text x="660" y="126" class="mono" font-size="13" fill="#7dd3fc">&#60;FlashList</text>
+    <text x="660" y="150" class="mono" font-size="13" fill="#c4b5fd">&#160;&#160;renderItem<tspan fill="#64748b">={() =&#62; (</tspan></text>
+    <text x="660" y="174" class="mono" font-size="13" fill="#7dd3fc">&#160;&#160;&#160;&#160;&#60;VideoView</text>
+    <text x="660" y="198" class="mono" font-size="13" fill="#c4b5fd">&#160;&#160;&#160;&#160;&#160;&#160;source<tspan fill="#64748b">=</tspan><tspan fill="#5eead4">{item.uri}</tspan></text>
+    <text x="660" y="222" class="mono" font-size="13" fill="#c4b5fd">&#160;&#160;&#160;&#160;&#160;&#160;autoplay<tspan fill="#64748b">=</tspan><tspan fill="#5eead4">"whenVisible"</tspan></text>
+    <text x="660" y="246" class="mono" font-size="13" fill="#c4b5fd">&#160;&#160;&#160;&#160;&#160;&#160;muted loop</text>
+    <text x="660" y="270" class="mono" font-size="13" fill="#7dd3fc">&#160;&#160;&#160;&#160;/&#62;</text>
+    <text x="660" y="294" class="mono" font-size="13" fill="#64748b">&#160;&#160;)}</text>
+    <text x="660" y="318" class="mono" font-size="13" fill="#7dd3fc">/&#62;</text>
+  </g>
+
+  <!-- Arrow -->
+  <g stroke="url(#accent)" stroke-width="2.5" stroke-linecap="round">
+    <path d="M904 210 L940 210"/>
+    <path d="M931 201 L940 210 L931 219" fill="none"/>
+  </g>
+
+  <!-- Phone with feed -->
+  <g>
+    <rect x="952" y="48" width="216" height="324" rx="28" fill="#0a0f1c" stroke="#1f2a3f"/>
+    <rect x="962" y="58" width="196" height="304" rx="20" fill="#0b1020"/>
+
+    <!-- Cell: scrolled up, paused -->
+    <g opacity="0.55">
+      <rect x="974" y="72" width="172" height="84" rx="10" fill="url(#vidPausedA)"/>
+      <circle cx="1060" cy="114" r="14" fill="#0b1020" fill-opacity="0.55"/>
+      <rect x="1054" y="107" width="4" height="14" rx="1.5" fill="#e2e8f0"/>
+      <rect x="1062" y="107" width="4" height="14" rx="1.5" fill="#e2e8f0"/>
+    </g>
+
+    <!-- Cell: elected, playing -->
+    <g>
+      <rect x="972" y="166" width="176" height="88" rx="12" fill="none" stroke="url(#accent)" stroke-width="2"/>
+      <rect x="974" y="168" width="172" height="84" rx="10" fill="url(#vidPlaying)"/>
+      <rect x="982" y="176" width="74" height="20" rx="10" fill="#0b1020" fill-opacity="0.7"/>
+      <path d="M991 181 L991 191 L999 186 Z" fill="#5eead4"/>
+      <text x="1004" y="190" class="sans" font-size="10" font-weight="700" fill="#5eead4">PLAYING</text>
+      <rect x="982" y="240" width="156" height="4" rx="2" fill="#ffffff" fill-opacity="0.14"/>
+      <rect x="982" y="240" width="64" height="4" rx="2" fill="url(#accent)"/>
+    </g>
+
+    <!-- Cell: below, waiting -->
+    <g opacity="0.55">
+      <rect x="974" y="264" width="172" height="84" rx="10" fill="url(#vidPausedB)"/>
+      <circle cx="1060" cy="306" r="14" fill="#0b1020" fill-opacity="0.55"/>
+      <rect x="1054" y="299" width="4" height="14" rx="1.5" fill="#e2e8f0"/>
+      <rect x="1062" y="299" width="4" height="14" rx="1.5" fill="#e2e8f0"/>
+    </g>
+  </g>
+</svg>

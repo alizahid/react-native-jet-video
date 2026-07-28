@@ -1,4 +1,19 @@
-# react-native-jet-video
+<p align="center">
+  <img alt="react-native-jet-video — single-component video view for React Native with visibility autoplay, PiP, and caching" src="https://raw.githubusercontent.com/alizahid/react-native-jet-video/main/docs/hero.svg" width="900">
+</p>
+
+<p align="center">
+  Single-component video for React Native — visibility autoplay, fullscreen, PiP &amp; disk caching
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/react-native-jet-video"><img src="https://img.shields.io/npm/v/react-native-jet-video?color=A02F6F&label=npm" alt="npm"></a>
+  <a href="https://github.com/alizahid/react-native-jet-video/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/react-native-jet-video?color=668C0B" alt="license"></a>
+  <img src="https://img.shields.io/badge/platform-iOS-5E409D" alt="platform">
+  <img src="https://img.shields.io/badge/powered%20by-Nitro-205EA6" alt="nitro">
+</p>
+
+---
 
 A single-component video view for React Native, powered by [Nitro Modules](https://nitro.margelo.com) and AVFoundation.
 
