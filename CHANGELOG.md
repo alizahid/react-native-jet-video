@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fullscreen now uses AVKit's native zoom transition — fullscreen expands out
+  of the `VideoView` and collapses back into it (like expo-video) instead of
+  sliding up as a modal.
+- Playback resumes after exiting fullscreen when the video was playing;
+  AVKit's implicit pause during dismissal is undone. A deliberate pause made
+  in fullscreen sticks, and registers as a user-pause with the autoplay
+  coordinator so it isn't force-resumed.
+
 - Autoplay election: when candidates are comparably visible (within
   hysteresis), the video closest to the screen center now wins — fixes
   scrolling back up not handing playback to the previous video, and makes

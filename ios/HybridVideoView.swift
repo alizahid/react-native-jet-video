@@ -191,7 +191,7 @@ class HybridVideoView: HybridVideoViewSpec {
         promise.resolve(withResult: ())
         return
       }
-      FullscreenPresenter.shared.present(for: self) { error in
+      FullscreenPresenter.shared.enter(for: self) { error in
         if let error {
           promise.reject(withError: error)
         } else {
@@ -204,16 +204,48 @@ class HybridVideoView: HybridVideoViewSpec {
 
   func exitFullscreen() throws -> Promise<Void> {
     let promise = Promise<Void>()
-    DispatchQueue.main.async {
-      FullscreenPresenter.shared.dismiss { error in
-        if let error {
-          promise.reject(withError: error)
-        } else {
-          promise.resolve(withResult: ())
+    DispatchQueue.main.async { [self] in
+      if FullscreenPresenter.shared.isPresenting {
+        FullscreenPresenter.shared.exit { error in
+          if let error {
+            promise.reject(withError: error)
+          } else {
+            promise.resolve(withResult: ())
+          }
         }
+      } else if isFullscreen, let embeddedController {
+        // System-initiated fullscreen from the embedded controls surface.
+        FullscreenPresenter.performTransition(
+          embeddedController,
+          selectorName: "exitFullScreenAnimated:completionHandler:"
+        )
+        promise.resolve(withResult: ())
+      } else {
+        promise.reject(withError: VideoViewError.notInFullscreen)
       }
     }
     return promise
+  }
+
+  // MARK: - Fullscreen state (called by FullscreenPresenter / controls proxy)
+
+  func fullscreenTransition(active: Bool) {
+    isFullscreen = active
+    coordinator?.noteStateInvalidated()
+    onFullscreenChange?(active)
+  }
+
+  /// Restores playback intent after a fullscreen exit: AVKit implicitly pauses
+  /// the player during dismissal, so resume when the video was playing as the
+  /// exit began. When the user deliberately paused in fullscreen, register a
+  /// user-pause with the coordinator so a `whenVisible` election doesn't
+  /// immediately force-resume it.
+  func fullscreenExitPlaybackIntent(wasPlaying: Bool) {
+    if wasPlaying {
+      engine.play(reason: .system)
+    } else if let coordinator {
+      coordinator.noteUserPause(self)
+    }
   }
 
   func startPictureInPicture() throws -> Promise<Void> {
@@ -390,16 +422,21 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
     _ playerViewController: AVPlayerViewController,
     willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
-    owner?.isFullscreen = true
-    owner?.onFullscreenChange?(true)
+    owner?.fullscreenTransition(active: true)
   }
 
   func playerViewController(
     _ playerViewController: AVPlayerViewController,
     willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
-    owner?.isFullscreen = false
-    owner?.onFullscreenChange?(false)
+    // Capture before AVKit's implicit pause during dismissal, and restore the
+    // playback intent once the exit transition completes.
+    let wasPlaying = playerViewController.player?.timeControlStatus != .paused
+    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+      guard let owner = self?.owner else { return }
+      owner.fullscreenExitPlaybackIntent(wasPlaying: wasPlaying)
+      owner.fullscreenTransition(active: false)
+    }
   }
 
   func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
