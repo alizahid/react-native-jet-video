@@ -23,24 +23,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Test
-        run: npm test
+        run: bun run test
 
       - name: Verify nitrogen output is up to date
         run: |
-          npx nitrogen
+          bunx nitrogen
           git diff --exit-code nitrogen/
 
       - name: Build library
-        run: npx bob build
+        run: bunx bob build
