@@ -10,7 +10,7 @@ on:
       - 'nitrogen/**'
       - 'nitro.json'
       - '*.podspec'
-      - 'example/ios/**'
+      - 'example/**'
       - '.github/workflows/ios.yml'
   workflow_dispatch:
 
@@ -36,22 +36,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          working-directory: example
+      - name: Prebuild example (CNG)
+        run: bunx expo prebuild --platform ios --no-install
+        working-directory: example
 
       - name: Install pods
-        run: bundle exec pod install --project-directory=ios
+        run: pod install --project-directory=ios
         working-directory: example
 
       - name: Build
-        run: |
-          xcodebuild build \
-            -workspace example/ios/NitroVideoExample.xcworkspace \
-            -scheme NitroVideoExample \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO | xcbeautify --quiet || exit 1
+        run: bun run build:ios
+        working-directory: example

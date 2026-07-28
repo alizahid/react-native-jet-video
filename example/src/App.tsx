@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
-import { BasicPlayback } from './src/screens/BasicPlayback'
-import { Cache } from './src/screens/Cache'
-import { Feed } from './src/screens/Feed'
-import { Fullscreen } from './src/screens/Fullscreen'
-import { PictureInPicture } from './src/screens/PictureInPicture'
-import { RefMethods } from './src/screens/RefMethods'
+import { BasicPlayback } from './screens/BasicPlayback'
+import { Cache } from './screens/Cache'
+import { Feed } from './screens/Feed'
+import { Fullscreen } from './screens/Fullscreen'
+import { PictureInPicture } from './screens/PictureInPicture'
+import { RefMethods } from './screens/RefMethods'
 
 const SCREENS = {
   BasicPlayback: BasicPlayback,

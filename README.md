@@ -170,13 +170,12 @@ HLS streams are **not** disk-cached (AVPlayer buffers them in memory); caching a
 
 ## Example app
 
-`example/` contains screens for each feature — `BasicPlayback`, `RefMethods`, `Feed` (200-item FlashList stress test), `Fullscreen`, `PictureInPicture`:
+`example/` is an Expo dev-client app with screens for each feature — `BasicPlayback`, `RefMethods`, `Feed` (200-item FlashList stress test), `Fullscreen`, `PictureInPicture`, `Cache`:
 
 ```sh
-npm install
+bun install
 cd example
-npm run pod
-npm run ios
+bun run ios
 ```
 
 ## License

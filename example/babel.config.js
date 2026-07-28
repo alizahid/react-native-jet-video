@@ -1,20 +1,10 @@
-const path = require('path');
-const pak = require('../package.json');
+// Library source resolution is handled by the exports condition in
+// metro.config.js (react-native-jet-video-source), so no babel aliasing
+// is needed here.
+module.exports = (api) => {
+  api.cache(true)
 
-module.exports = api => {
-  api.cache(true);
   return {
-    presets: ['module:@react-native/babel-preset'],
-    plugins: [
-      [
-        'module-resolver',
-        {
-          extensions: ['.js', '.ts', '.json', '.jsx', '.tsx'],
-          alias: {
-            [pak.name]: path.join(__dirname, '..', pak.source),
-          },
-        },
-      ],
-    ],
-  };
-};
+    presets: ['babel-preset-expo'],
+  }
+}

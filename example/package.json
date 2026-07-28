@@ -1,38 +1,26 @@
 {
   "name": "react-native-jet-video-example",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "lint": "eslint .",
-    "start": "react-native start --reset-cache",
-    "test": "jest",
-    "pod": "bundle install && bundle exec pod install --project-directory=ios"
+    "build:ios": "xcodebuild ONLY_ACTIVE_ARCH=YES -workspace ios/JetVideoExample.xcworkspace -UseNewBuildSystem=YES -scheme JetVideoExample -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet",
+    "ios": "expo run:ios",
+    "pod": "pod install --project-directory=ios",
+    "prebuild": "expo prebuild --platform ios",
+    "start": "expo start --dev-client"
   },
   "dependencies": {
-    "@react-native/new-app-screen": "0.86.2",
     "@shopify/flash-list": "^2.3.2",
+    "expo": "~57.0.1",
     "react": "19.2.8",
     "react-native": "0.86.2",
-    "react-native-nitro-modules": "^0.36.3",
-    "react-native-safe-area-context": "^5.8.0"
+    "react-native-nitro-modules": "^0.36.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
-    "@babel/preset-env": "^7.29.7",
-    "@babel/runtime": "^7.29.7",
-    "@react-native-community/cli": "20.2.0",
-    "@react-native-community/cli-platform-android": "20.2.0",
-    "@react-native-community/cli-platform-ios": "20.2.0",
-    "@react-native/babel-preset": "0.86.2",
-    "@react-native/eslint-config": "0.86.2",
-    "@react-native/metro-config": "0.86.2",
     "@react-native/typescript-config": "0.86.2",
-    "@types/jest": "^30.0.0",
-    "babel-plugin-module-resolver": "^5.0.2"
-  },
-  "engines": {
-    "node": ">= 22.11.0"
+    "babel-preset-expo": "^57.0.1",
+    "expo-dev-client": "~57.0.4",
+    "react-native-monorepo-config": "^0.4.0"
   }
 }

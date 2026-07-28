@@ -1,4 +1,17 @@
 {
-  "name": "JetVideoExample",
-  "displayName": "JetVideoExample"
+  "expo": {
+    "name": "JetVideoExample",
+    "slug": "react-native-jet-video-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "jetvideo.example",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    }
+  }
 }
