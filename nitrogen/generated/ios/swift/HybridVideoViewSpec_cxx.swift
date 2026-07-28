@@ -18,11 +18,11 @@ import NitroModules
  */
 open class HybridVideoViewSpec_cxx {
   /**
-   * The Swift <> C++ bridge's namespace (`margelo::nitro::nitrovideo::bridge::swift`)
-   * from `NitroVideo-Swift-Cxx-Bridge.hpp`.
+   * The Swift <> C++ bridge's namespace (`margelo::nitro::jetvideo::bridge::swift`)
+   * from `JetVideo-Swift-Cxx-Bridge.hpp`.
    * This contains specialized C++ templates, and C++ helper functions that can be accessed from Swift.
    */
-  public typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  public typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Holds an instance of the `HybridVideoViewSpec` Swift protocol.
@@ -145,7 +145,7 @@ open class HybridVideoViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.autoplayMode = margelo.nitro.nitrovideo.AutoplayMode(rawValue: newValue)!
+      self.__implementation.autoplayMode = margelo.nitro.jetvideo.AutoplayMode(rawValue: newValue)!
     }
   }
   
@@ -189,7 +189,7 @@ open class HybridVideoViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.resizeMode = margelo.nitro.nitrovideo.ResizeMode(rawValue: newValue)!
+      self.__implementation.resizeMode = margelo.nitro.jetvideo.ResizeMode(rawValue: newValue)!
     }
   }
   
@@ -257,7 +257,7 @@ open class HybridVideoViewSpec_cxx {
     }
     @inline(__always)
     set {
-      self.__implementation.audioMixMode = margelo.nitro.nitrovideo.AudioMixMode(rawValue: newValue)!
+      self.__implementation.audioMixMode = margelo.nitro.jetvideo.AudioMixMode(rawValue: newValue)!
     }
   }
   

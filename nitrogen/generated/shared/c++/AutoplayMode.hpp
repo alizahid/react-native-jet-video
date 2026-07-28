@@ -23,7 +23,7 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * An enum which can be represented as a JavaScript union (AutoplayMode).
@@ -34,28 +34,28 @@ namespace margelo::nitro::nitrovideo {
     WHENVISIBLE      SWIFT_NAME(whenvisible) = 2,
   } CLOSED_ENUM;
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ AutoplayMode <> JS AutoplayMode (union)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::AutoplayMode> final {
-    static inline margelo::nitro::nitrovideo::AutoplayMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::AutoplayMode> final {
+    static inline margelo::nitro::jetvideo::AutoplayMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
-        case hashString("off"): return margelo::nitro::nitrovideo::AutoplayMode::OFF;
-        case hashString("always"): return margelo::nitro::nitrovideo::AutoplayMode::ALWAYS;
-        case hashString("whenVisible"): return margelo::nitro::nitrovideo::AutoplayMode::WHENVISIBLE;
+        case hashString("off"): return margelo::nitro::jetvideo::AutoplayMode::OFF;
+        case hashString("always"): return margelo::nitro::jetvideo::AutoplayMode::ALWAYS;
+        case hashString("whenVisible"): return margelo::nitro::jetvideo::AutoplayMode::WHENVISIBLE;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum AutoplayMode - invalid value!");
       }
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrovideo::AutoplayMode arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::jetvideo::AutoplayMode arg) {
       switch (arg) {
-        case margelo::nitro::nitrovideo::AutoplayMode::OFF: return JSIConverter<std::string>::toJSI(runtime, "off");
-        case margelo::nitro::nitrovideo::AutoplayMode::ALWAYS: return JSIConverter<std::string>::toJSI(runtime, "always");
-        case margelo::nitro::nitrovideo::AutoplayMode::WHENVISIBLE: return JSIConverter<std::string>::toJSI(runtime, "whenVisible");
+        case margelo::nitro::jetvideo::AutoplayMode::OFF: return JSIConverter<std::string>::toJSI(runtime, "off");
+        case margelo::nitro::jetvideo::AutoplayMode::ALWAYS: return JSIConverter<std::string>::toJSI(runtime, "always");
+        case margelo::nitro::jetvideo::AutoplayMode::WHENVISIBLE: return JSIConverter<std::string>::toJSI(runtime, "whenVisible");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert AutoplayMode to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");

@@ -14,21 +14,21 @@
 #endif
 
 // Forward declaration of `VideoSource` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct VideoSource; }
+namespace margelo::nitro::jetvideo { struct VideoSource; }
 // Forward declaration of `AutoplayMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class AutoplayMode; }
+namespace margelo::nitro::jetvideo { enum class AutoplayMode; }
 // Forward declaration of `ResizeMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class ResizeMode; }
+namespace margelo::nitro::jetvideo { enum class ResizeMode; }
 // Forward declaration of `AudioMixMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class AudioMixMode; }
+namespace margelo::nitro::jetvideo { enum class AudioMixMode; }
 // Forward declaration of `LoadEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct LoadEvent; }
+namespace margelo::nitro::jetvideo { struct LoadEvent; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct ProgressEvent; }
+namespace margelo::nitro::jetvideo { struct ProgressEvent; }
 // Forward declaration of `VideoErrorEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct VideoErrorEvent; }
+namespace margelo::nitro::jetvideo { struct VideoErrorEvent; }
 // Forward declaration of `PlaybackStateEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct PlaybackStateEvent; }
+namespace margelo::nitro::jetvideo { struct PlaybackStateEvent; }
 
 #include "VideoSource.hpp"
 #include <optional>
@@ -43,7 +43,7 @@ namespace margelo::nitro::nitrovideo { struct PlaybackStateEvent; }
 #include "PlaybackStateEvent.hpp"
 #include <NitroModules/Promise.hpp>
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   using namespace margelo::nitro;
 
@@ -133,4 +133,4 @@ namespace margelo::nitro::nitrovideo {
       static constexpr auto TAG = "VideoView";
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo

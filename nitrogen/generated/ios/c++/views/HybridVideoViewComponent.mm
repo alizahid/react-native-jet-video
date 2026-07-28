@@ -15,7 +15,7 @@
 #import <UIKit/UIKit.h>
 
 #import "HybridVideoViewSpecSwift.hpp"
-#import "NitroVideo-Swift-Cxx-Umbrella.hpp"
+#import "JetVideo-Swift-Cxx-Umbrella.hpp"
 
 #if __has_include(<cxxreact/ReactNativeVersion.h>)
 #include <cxxreact/ReactNativeVersion.h>
@@ -25,8 +25,8 @@
 #endif
 
 using namespace facebook;
-using namespace margelo::nitro::nitrovideo;
-using namespace margelo::nitro::nitrovideo::views;
+using namespace margelo::nitro::jetvideo;
+using namespace margelo::nitro::jetvideo::views;
 
 /**
  * Represents the React Native View holder for the Nitro "VideoView" HybridView.
@@ -50,7 +50,7 @@ using namespace margelo::nitro::nitrovideo::views;
 
 - (instancetype) init {
   if (self = [super init]) {
-    std::shared_ptr<HybridVideoViewSpec> hybridView = NitroVideo::NitroVideoAutolinking::createVideoView();
+    std::shared_ptr<HybridVideoViewSpec> hybridView = JetVideo::JetVideoAutolinking::createVideoView();
     _hybridView = std::dynamic_pointer_cast<HybridVideoViewSpecSwift>(hybridView);
     [self updateView];
   }
@@ -59,7 +59,7 @@ using namespace margelo::nitro::nitrovideo::views;
 
 - (void) updateView {
   // 1. Get Swift part
-  NitroVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
   // 2. Get UIView*
   void* viewUnsafe = swiftPart.getView();
@@ -74,7 +74,7 @@ using namespace margelo::nitro::nitrovideo::views;
   // 1. Downcast props
   const auto& newViewPropsConst = *std::static_pointer_cast<HybridVideoViewProps const>(props);
   auto& newViewProps = const_cast<HybridVideoViewProps&>(newViewPropsConst);
-  NitroVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
   // 2. Update each prop individually
   swiftPart.beforeUpdate();
@@ -202,18 +202,18 @@ using namespace margelo::nitro::nitrovideo::views;
 }
 
 + (BOOL)shouldBeRecycled {
-  return NitroVideo::NitroVideoAutolinking::isVideoViewRecyclable();
+  return JetVideo::JetVideoAutolinking::isVideoViewRecyclable();
 }
 
 - (void)prepareForRecycle {
   [super prepareForRecycle];
-  NitroVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
 }
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  NitroVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.onDropView();
   [super invalidate];
 }

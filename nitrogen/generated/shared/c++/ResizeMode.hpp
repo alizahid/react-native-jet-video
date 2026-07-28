@@ -23,7 +23,7 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * An enum which can be represented as a JavaScript union (ResizeMode).
@@ -34,28 +34,28 @@ namespace margelo::nitro::nitrovideo {
     STRETCH      SWIFT_NAME(stretch) = 2,
   } CLOSED_ENUM;
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ ResizeMode <> JS ResizeMode (union)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::ResizeMode> final {
-    static inline margelo::nitro::nitrovideo::ResizeMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::ResizeMode> final {
+    static inline margelo::nitro::jetvideo::ResizeMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
-        case hashString("contain"): return margelo::nitro::nitrovideo::ResizeMode::CONTAIN;
-        case hashString("cover"): return margelo::nitro::nitrovideo::ResizeMode::COVER;
-        case hashString("stretch"): return margelo::nitro::nitrovideo::ResizeMode::STRETCH;
+        case hashString("contain"): return margelo::nitro::jetvideo::ResizeMode::CONTAIN;
+        case hashString("cover"): return margelo::nitro::jetvideo::ResizeMode::COVER;
+        case hashString("stretch"): return margelo::nitro::jetvideo::ResizeMode::STRETCH;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum ResizeMode - invalid value!");
       }
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrovideo::ResizeMode arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::jetvideo::ResizeMode arg) {
       switch (arg) {
-        case margelo::nitro::nitrovideo::ResizeMode::CONTAIN: return JSIConverter<std::string>::toJSI(runtime, "contain");
-        case margelo::nitro::nitrovideo::ResizeMode::COVER: return JSIConverter<std::string>::toJSI(runtime, "cover");
-        case margelo::nitro::nitrovideo::ResizeMode::STRETCH: return JSIConverter<std::string>::toJSI(runtime, "stretch");
+        case margelo::nitro::jetvideo::ResizeMode::CONTAIN: return JSIConverter<std::string>::toJSI(runtime, "contain");
+        case margelo::nitro::jetvideo::ResizeMode::COVER: return JSIConverter<std::string>::toJSI(runtime, "cover");
+        case margelo::nitro::jetvideo::ResizeMode::STRETCH: return JSIConverter<std::string>::toJSI(runtime, "stretch");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert ResizeMode to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");

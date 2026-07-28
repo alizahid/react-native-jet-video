@@ -23,7 +23,7 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * An enum which can be represented as a JavaScript union (AudioMixMode).
@@ -34,28 +34,28 @@ namespace margelo::nitro::nitrovideo {
     DONOTMIX      SWIFT_NAME(donotmix) = 2,
   } CLOSED_ENUM;
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ AudioMixMode <> JS AudioMixMode (union)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::AudioMixMode> final {
-    static inline margelo::nitro::nitrovideo::AudioMixMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::AudioMixMode> final {
+    static inline margelo::nitro::jetvideo::AudioMixMode fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
-        case hashString("mixWithOthers"): return margelo::nitro::nitrovideo::AudioMixMode::MIXWITHOTHERS;
-        case hashString("duckOthers"): return margelo::nitro::nitrovideo::AudioMixMode::DUCKOTHERS;
-        case hashString("doNotMix"): return margelo::nitro::nitrovideo::AudioMixMode::DONOTMIX;
+        case hashString("mixWithOthers"): return margelo::nitro::jetvideo::AudioMixMode::MIXWITHOTHERS;
+        case hashString("duckOthers"): return margelo::nitro::jetvideo::AudioMixMode::DUCKOTHERS;
+        case hashString("doNotMix"): return margelo::nitro::jetvideo::AudioMixMode::DONOTMIX;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum AudioMixMode - invalid value!");
       }
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrovideo::AudioMixMode arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::jetvideo::AudioMixMode arg) {
       switch (arg) {
-        case margelo::nitro::nitrovideo::AudioMixMode::MIXWITHOTHERS: return JSIConverter<std::string>::toJSI(runtime, "mixWithOthers");
-        case margelo::nitro::nitrovideo::AudioMixMode::DUCKOTHERS: return JSIConverter<std::string>::toJSI(runtime, "duckOthers");
-        case margelo::nitro::nitrovideo::AudioMixMode::DONOTMIX: return JSIConverter<std::string>::toJSI(runtime, "doNotMix");
+        case margelo::nitro::jetvideo::AudioMixMode::MIXWITHOTHERS: return JSIConverter<std::string>::toJSI(runtime, "mixWithOthers");
+        case margelo::nitro::jetvideo::AudioMixMode::DUCKOTHERS: return JSIConverter<std::string>::toJSI(runtime, "duckOthers");
+        case margelo::nitro::jetvideo::AudioMixMode::DONOTMIX: return JSIConverter<std::string>::toJSI(runtime, "doNotMix");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert AudioMixMode to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");

@@ -10,28 +10,28 @@
 #include "HybridVideoViewSpec.hpp"
 
 // Forward declaration of `HybridVideoViewSpec_cxx` to properly resolve imports.
-namespace NitroVideo { class HybridVideoViewSpec_cxx; }
+namespace JetVideo { class HybridVideoViewSpec_cxx; }
 
 // Forward declaration of `VideoSource` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct VideoSource; }
+namespace margelo::nitro::jetvideo { struct VideoSource; }
 // Forward declaration of `AutoplayMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class AutoplayMode; }
+namespace margelo::nitro::jetvideo { enum class AutoplayMode; }
 // Forward declaration of `ResizeMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class ResizeMode; }
+namespace margelo::nitro::jetvideo { enum class ResizeMode; }
 // Forward declaration of `AudioMixMode` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class AudioMixMode; }
+namespace margelo::nitro::jetvideo { enum class AudioMixMode; }
 // Forward declaration of `LoadEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct LoadEvent; }
+namespace margelo::nitro::jetvideo { struct LoadEvent; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct ProgressEvent; }
+namespace margelo::nitro::jetvideo { struct ProgressEvent; }
 // Forward declaration of `VideoErrorEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct VideoErrorEvent; }
+namespace margelo::nitro::jetvideo { struct VideoErrorEvent; }
 // Forward declaration of `PlaybackStateEvent` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct PlaybackStateEvent; }
+namespace margelo::nitro::jetvideo { struct PlaybackStateEvent; }
 // Forward declaration of `PlaybackStatus` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class PlaybackStatus; }
+namespace margelo::nitro::jetvideo { enum class PlaybackStatus; }
 // Forward declaration of `PlaybackChangeReason` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class PlaybackChangeReason; }
+namespace margelo::nitro::jetvideo { enum class PlaybackChangeReason; }
 
 #include "VideoSource.hpp"
 #include <optional>
@@ -49,9 +49,9 @@ namespace margelo::nitro::nitrovideo { enum class PlaybackChangeReason; }
 #include "PlaybackChangeReason.hpp"
 #include <NitroModules/Promise.hpp>
 
-#include "NitroVideo-Swift-Cxx-Umbrella.hpp"
+#include "JetVideo-Swift-Cxx-Umbrella.hpp"
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * The C++ part of HybridVideoViewSpec_cxx.swift.
@@ -66,13 +66,13 @@ namespace margelo::nitro::nitrovideo {
   class HybridVideoViewSpecSwift: public virtual HybridVideoViewSpec {
   public:
     // Constructor from a Swift instance
-    explicit HybridVideoViewSpecSwift(const NitroVideo::HybridVideoViewSpec_cxx& swiftPart):
+    explicit HybridVideoViewSpecSwift(const JetVideo::HybridVideoViewSpec_cxx& swiftPart):
       HybridObject(HybridVideoViewSpec::TAG),
       _swiftPart(swiftPart) { }
 
   public:
     // Get the Swift part
-    inline NitroVideo::HybridVideoViewSpec_cxx& getSwiftPart() noexcept {
+    inline JetVideo::HybridVideoViewSpec_cxx& getSwiftPart() noexcept {
       return _swiftPart;
     }
 
@@ -301,7 +301,7 @@ namespace margelo::nitro::nitrovideo {
     }
 
   private:
-    NitroVideo::HybridVideoViewSpec_cxx _swiftPart;
+    JetVideo::HybridVideoViewSpec_cxx _swiftPart;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo

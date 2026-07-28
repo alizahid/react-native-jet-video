@@ -8,7 +8,7 @@
 /**
  * Represents the JS union `ResizeMode`, backed by a C++ enum.
  */
-public typealias ResizeMode = margelo.nitro.nitrovideo.ResizeMode
+public typealias ResizeMode = margelo.nitro.jetvideo.ResizeMode
 
 public extension ResizeMode {
   /**

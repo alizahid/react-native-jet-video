@@ -3,8 +3,9 @@ PODS:
   - hermes-engine (250829098.0.14):
     - hermes-engine/Pre-built (= 250829098.0.14)
   - hermes-engine/Pre-built (250829098.0.14)
-  - NitroModules (0.36.3):
+  - JetVideo (0.1.0):
     - hermes-engine
+    - NitroModules
     - RCTRequired
     - RCTTypeSafety
     - React-callinvoker
@@ -26,9 +27,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - NitroVideo (0.1.0):
+  - NitroModules (0.36.3):
     - hermes-engine
-    - NitroModules
     - RCTRequired
     - RCTTypeSafety
     - React-callinvoker
@@ -1944,8 +1944,8 @@ PODS:
 DEPENDENCIES:
   - FBLazyVector (from `../../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - JetVideo (from `../..`)
   - NitroModules (from `../../node_modules/react-native-nitro-modules`)
-  - NitroVideo (from `../..`)
   - RCTDeprecation (from `../../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../../node_modules/react-native/Libraries/Required`)
   - RCTSwiftUI (from `../../node_modules/react-native/ReactApple/RCTSwiftUI`)
@@ -2028,10 +2028,10 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v250829098.0.14
+  JetVideo:
+    :path: "../.."
   NitroModules:
     :path: "../../node_modules/react-native-nitro-modules"
-  NitroVideo:
-    :path: "../.."
   RCTDeprecation:
     :path: "../../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2184,8 +2184,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FBLazyVector: b3e7ad108f0d882e30445c5527d774e3fd432f3d
   hermes-engine: b441e9f77dc7038fd0b1348ce5cd8ef257a302fd
+  JetVideo: 635936075d3f71451b87402a7ef6b9d601dc62d0
   NitroModules: ad8b30b0f7bc328c62fa078260b9c576e8d100ac
-  NitroVideo: edaff5a0c5242be9f50a7e413da33b2cfb9842d3
   RCTDeprecation: 2a74a2c57675e64419bd89078efde81f7c1de90b
   RCTRequired: 30451112e6fef4e6f31b4e7eee0845156e35e4b0
   RCTSwiftUI: 5aaf0b07e747ba749dc6acc94d8bd41eea4b570f
@@ -2261,6 +2261,6 @@ SPEC CHECKSUMS:
   ReactNativeDependencies: fa0a54b3f5319ae0e3b9aff32bfee7a424b88e66
   Yoga: fe50ab299e578f397fef753cf309c6703a4db29b
 
-PODFILE CHECKSUM: b3632065dc5a04dcd6aee26a575b3ba9eed962db
+PODFILE CHECKSUM: 7857c444649775131437b547662cecdfbec89f23
 
 COCOAPODS: 1.15.2

@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `AutoplayConfig`, backed by a C++ struct.
  */
-public typealias AutoplayConfig = margelo.nitro.nitrovideo.AutoplayConfig
+public typealias AutoplayConfig = margelo.nitro.jetvideo.AutoplayConfig
 
 public extension AutoplayConfig {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `AutoplayConfig`.

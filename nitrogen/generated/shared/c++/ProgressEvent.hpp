@@ -32,7 +32,7 @@
 
 
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (ProgressEvent).
@@ -50,21 +50,21 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const ProgressEvent& lhs, const ProgressEvent& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ ProgressEvent <> JS ProgressEvent (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::ProgressEvent> final {
-    static inline margelo::nitro::nitrovideo::ProgressEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::ProgressEvent> final {
+    static inline margelo::nitro::jetvideo::ProgressEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::ProgressEvent(
+      return margelo::nitro::jetvideo::ProgressEvent(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "currentTime"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "bufferedDuration")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::ProgressEvent& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::ProgressEvent& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "currentTime"), JSIConverter<double>::toJSI(runtime, arg.currentTime));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "bufferedDuration"), JSIConverter<double>::toJSI(runtime, arg.bufferedDuration));

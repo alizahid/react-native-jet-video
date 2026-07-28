@@ -4,7 +4,7 @@ import {
   type VideoPlaybackStateEvent,
   VideoView,
   type VideoViewRef,
-} from 'react-native-nitro-video'
+} from 'react-native-jet-video'
 
 const SOURCES = [
   'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4',

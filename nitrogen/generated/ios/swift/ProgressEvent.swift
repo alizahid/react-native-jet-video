@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `ProgressEvent`, backed by a C++ struct.
  */
-public typealias ProgressEvent = margelo.nitro.nitrovideo.ProgressEvent
+public typealias ProgressEvent = margelo.nitro.jetvideo.ProgressEvent
 
 public extension ProgressEvent {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `ProgressEvent`.

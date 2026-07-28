@@ -8,7 +8,7 @@
 /**
  * Represents the JS union `AutoplayMode`, backed by a C++ enum.
  */
-public typealias AutoplayMode = margelo.nitro.nitrovideo.AutoplayMode
+public typealias AutoplayMode = margelo.nitro.jetvideo.AutoplayMode
 
 public extension AutoplayMode {
   /**

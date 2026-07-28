@@ -29,14 +29,14 @@
 #endif
 
 // Forward declaration of `PlaybackStatus` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class PlaybackStatus; }
+namespace margelo::nitro::jetvideo { enum class PlaybackStatus; }
 // Forward declaration of `PlaybackChangeReason` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { enum class PlaybackChangeReason; }
+namespace margelo::nitro::jetvideo { enum class PlaybackChangeReason; }
 
 #include "PlaybackStatus.hpp"
 #include "PlaybackChangeReason.hpp"
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (PlaybackStateEvent).
@@ -54,24 +54,24 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const PlaybackStateEvent& lhs, const PlaybackStateEvent& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ PlaybackStateEvent <> JS PlaybackStateEvent (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::PlaybackStateEvent> final {
-    static inline margelo::nitro::nitrovideo::PlaybackStateEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::PlaybackStateEvent> final {
+    static inline margelo::nitro::jetvideo::PlaybackStateEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::PlaybackStateEvent(
-        JSIConverter<margelo::nitro::nitrovideo::PlaybackStatus>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "status"))),
-        JSIConverter<margelo::nitro::nitrovideo::PlaybackChangeReason>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "reason")))
+      return margelo::nitro::jetvideo::PlaybackStateEvent(
+        JSIConverter<margelo::nitro::jetvideo::PlaybackStatus>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "status"))),
+        JSIConverter<margelo::nitro::jetvideo::PlaybackChangeReason>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "reason")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::PlaybackStateEvent& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::PlaybackStateEvent& arg) {
       jsi::Object obj(runtime);
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "status"), JSIConverter<margelo::nitro::nitrovideo::PlaybackStatus>::toJSI(runtime, arg.status));
-      obj.setProperty(runtime, PropNameIDCache::get(runtime, "reason"), JSIConverter<margelo::nitro::nitrovideo::PlaybackChangeReason>::toJSI(runtime, arg.reason));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "status"), JSIConverter<margelo::nitro::jetvideo::PlaybackStatus>::toJSI(runtime, arg.status));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "reason"), JSIConverter<margelo::nitro::jetvideo::PlaybackChangeReason>::toJSI(runtime, arg.reason));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -82,8 +82,8 @@ namespace margelo::nitro {
       if (!nitro::isPlainObject(runtime, obj)) {
         return false;
       }
-      if (!JSIConverter<margelo::nitro::nitrovideo::PlaybackStatus>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "status")))) return false;
-      if (!JSIConverter<margelo::nitro::nitrovideo::PlaybackChangeReason>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "reason")))) return false;
+      if (!JSIConverter<margelo::nitro::jetvideo::PlaybackStatus>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "status")))) return false;
+      if (!JSIConverter<margelo::nitro::jetvideo::PlaybackChangeReason>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "reason")))) return false;
       return true;
     }
   };

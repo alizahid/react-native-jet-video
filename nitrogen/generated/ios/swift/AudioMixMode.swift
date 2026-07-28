@@ -8,7 +8,7 @@
 /**
  * Represents the JS union `AudioMixMode`, backed by a C++ enum.
  */
-public typealias AudioMixMode = margelo.nitro.nitrovideo.AudioMixMode
+public typealias AudioMixMode = margelo.nitro.jetvideo.AudioMixMode
 
 public extension AudioMixMode {
   /**

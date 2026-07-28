@@ -32,7 +32,7 @@
 
 
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (LoadEvent).
@@ -52,23 +52,23 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const LoadEvent& lhs, const LoadEvent& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ LoadEvent <> JS LoadEvent (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::LoadEvent> final {
-    static inline margelo::nitro::nitrovideo::LoadEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::LoadEvent> final {
+    static inline margelo::nitro::jetvideo::LoadEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::LoadEvent(
+      return margelo::nitro::jetvideo::LoadEvent(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "duration"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "naturalWidth"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "naturalHeight"))),
         JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "isLive")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::LoadEvent& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::LoadEvent& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "duration"), JSIConverter<double>::toJSI(runtime, arg.duration));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "naturalWidth"), JSIConverter<double>::toJSI(runtime, arg.naturalWidth));

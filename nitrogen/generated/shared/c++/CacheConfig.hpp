@@ -32,7 +32,7 @@
 
 #include <optional>
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (CacheConfig).
@@ -49,20 +49,20 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const CacheConfig& lhs, const CacheConfig& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ CacheConfig <> JS CacheConfig (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::CacheConfig> final {
-    static inline margelo::nitro::nitrovideo::CacheConfig fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::CacheConfig> final {
+    static inline margelo::nitro::jetvideo::CacheConfig fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::CacheConfig(
+      return margelo::nitro::jetvideo::CacheConfig(
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxSizeBytes")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::CacheConfig& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::CacheConfig& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxSizeBytes"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.maxSizeBytes));
       return obj;

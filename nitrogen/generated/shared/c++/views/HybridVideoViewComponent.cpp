@@ -18,7 +18,7 @@
 #include <react/renderer/core/ComponentDescriptor.h>
 #include <react/renderer/components/view/ViewProps.h>
 
-namespace margelo::nitro::nitrovideo::views {
+namespace margelo::nitro::jetvideo::views {
 
   extern const char HybridVideoViewComponentName[] = "VideoView";
 
@@ -300,4 +300,4 @@ namespace margelo::nitro::nitrovideo::views {
   }
 #endif
 
-} // namespace margelo::nitro::nitrovideo::views
+} // namespace margelo::nitro::jetvideo::views

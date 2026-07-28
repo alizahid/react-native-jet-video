@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { clearCache, getCacheSize, VideoView } from 'react-native-nitro-video'
+import { clearCache, getCacheSize, VideoView } from 'react-native-jet-video'
 
 const SOURCE =
   'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4'

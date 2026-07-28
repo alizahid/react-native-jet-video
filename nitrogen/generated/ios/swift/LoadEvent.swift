@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `LoadEvent`, backed by a C++ struct.
  */
-public typealias LoadEvent = margelo.nitro.nitrovideo.LoadEvent
+public typealias LoadEvent = margelo.nitro.jetvideo.LoadEvent
 
 public extension LoadEvent {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `LoadEvent`.

@@ -7,5 +7,5 @@
 
 #include "HybridVideoViewSpecSwift.hpp"
 
-namespace margelo::nitro::nitrovideo {
-} // namespace margelo::nitro::nitrovideo
+namespace margelo::nitro::jetvideo {
+} // namespace margelo::nitro::jetvideo

@@ -30,7 +30,7 @@
 #include <memory>
 #include "HybridVideoViewSpec.hpp"
 
-namespace margelo::nitro::nitrovideo::views {
+namespace margelo::nitro::jetvideo::views {
 
   using namespace facebook;
 
@@ -136,4 +136,4 @@ namespace margelo::nitro::nitrovideo::views {
 
   /* The actual view for "VideoView" needs to be implemented in platform-specific code. */
 
-} // namespace margelo::nitro::nitrovideo::views
+} // namespace margelo::nitro::jetvideo::views

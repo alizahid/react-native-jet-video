@@ -1,11 +1,11 @@
-# react-native-nitro-video
+# react-native-jet-video
 
 A single-component video view for React Native, powered by [Nitro Modules](https://nitro.margelo.com) and AVFoundation.
 
 No player objects. No view/player wiring. Just a view:
 
 ```tsx
-import { VideoView } from 'react-native-nitro-video'
+import { VideoView } from 'react-native-jet-video'
 
 <VideoView source="https://example.com/video.mp4" autoplay muted style={styles.video} />
 ```
@@ -42,7 +42,7 @@ How the election works (all native, ~10 Hz, works with nested/clipped scroll vie
 Tune it globally if needed:
 
 ```ts
-import { configureAutoplay } from 'react-native-nitro-video'
+import { configureAutoplay } from 'react-native-jet-video'
 
 configureAutoplay({ minVisibleFraction: 0.6, hysteresis: 0.15 })
 ```
@@ -52,7 +52,7 @@ Use `coordinatorGroup="stories"` to run independent elections for separate lists
 ## Installation
 
 ```sh
-npm install react-native-nitro-video react-native-nitro-modules
+npm install react-native-jet-video react-native-nitro-modules
 cd ios && pod install
 ```
 
@@ -119,7 +119,7 @@ The library never interrupts other apps' audio unless you ask it to:
 If your app manages its own `AVAudioSession`, opt out entirely:
 
 ```ts
-import { setAudioSessionManagementEnabled } from 'react-native-nitro-video'
+import { setAudioSessionManagementEnabled } from 'react-native-jet-video'
 
 setAudioSessionManagementEnabled(false)
 ```
@@ -129,7 +129,7 @@ setAudioSessionManagementEnabled(false)
 Progressive sources (MP4, MOV, M4A, …) are **disk-cached automatically**, including partially streamed ones: whatever bytes were streamed are kept as ranges on disk, so a later playback — even after an app restart — serves from cache instantly and only fetches the missing ranges. The cache is LRU-evicted against a 1 GB budget by default.
 
 ```ts
-import { clearCache, configureCache, getCacheSize } from 'react-native-nitro-video'
+import { clearCache, configureCache, getCacheSize } from 'react-native-jet-video'
 
 configureCache({ maxSizeBytes: 512 * 1024 * 1024 })
 const bytes = await getCacheSize()

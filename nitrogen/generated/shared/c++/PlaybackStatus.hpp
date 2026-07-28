@@ -23,7 +23,7 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * An enum which can be represented as a JavaScript union (PlaybackStatus).
@@ -39,38 +39,38 @@ namespace margelo::nitro::nitrovideo {
     ERROR      SWIFT_NAME(error) = 7,
   } CLOSED_ENUM;
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ PlaybackStatus <> JS PlaybackStatus (union)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::PlaybackStatus> final {
-    static inline margelo::nitro::nitrovideo::PlaybackStatus fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::PlaybackStatus> final {
+    static inline margelo::nitro::jetvideo::PlaybackStatus fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
-        case hashString("idle"): return margelo::nitro::nitrovideo::PlaybackStatus::IDLE;
-        case hashString("loading"): return margelo::nitro::nitrovideo::PlaybackStatus::LOADING;
-        case hashString("readyToPlay"): return margelo::nitro::nitrovideo::PlaybackStatus::READYTOPLAY;
-        case hashString("buffering"): return margelo::nitro::nitrovideo::PlaybackStatus::BUFFERING;
-        case hashString("playing"): return margelo::nitro::nitrovideo::PlaybackStatus::PLAYING;
-        case hashString("paused"): return margelo::nitro::nitrovideo::PlaybackStatus::PAUSED;
-        case hashString("ended"): return margelo::nitro::nitrovideo::PlaybackStatus::ENDED;
-        case hashString("error"): return margelo::nitro::nitrovideo::PlaybackStatus::ERROR;
+        case hashString("idle"): return margelo::nitro::jetvideo::PlaybackStatus::IDLE;
+        case hashString("loading"): return margelo::nitro::jetvideo::PlaybackStatus::LOADING;
+        case hashString("readyToPlay"): return margelo::nitro::jetvideo::PlaybackStatus::READYTOPLAY;
+        case hashString("buffering"): return margelo::nitro::jetvideo::PlaybackStatus::BUFFERING;
+        case hashString("playing"): return margelo::nitro::jetvideo::PlaybackStatus::PLAYING;
+        case hashString("paused"): return margelo::nitro::jetvideo::PlaybackStatus::PAUSED;
+        case hashString("ended"): return margelo::nitro::jetvideo::PlaybackStatus::ENDED;
+        case hashString("error"): return margelo::nitro::jetvideo::PlaybackStatus::ERROR;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum PlaybackStatus - invalid value!");
       }
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrovideo::PlaybackStatus arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::jetvideo::PlaybackStatus arg) {
       switch (arg) {
-        case margelo::nitro::nitrovideo::PlaybackStatus::IDLE: return JSIConverter<std::string>::toJSI(runtime, "idle");
-        case margelo::nitro::nitrovideo::PlaybackStatus::LOADING: return JSIConverter<std::string>::toJSI(runtime, "loading");
-        case margelo::nitro::nitrovideo::PlaybackStatus::READYTOPLAY: return JSIConverter<std::string>::toJSI(runtime, "readyToPlay");
-        case margelo::nitro::nitrovideo::PlaybackStatus::BUFFERING: return JSIConverter<std::string>::toJSI(runtime, "buffering");
-        case margelo::nitro::nitrovideo::PlaybackStatus::PLAYING: return JSIConverter<std::string>::toJSI(runtime, "playing");
-        case margelo::nitro::nitrovideo::PlaybackStatus::PAUSED: return JSIConverter<std::string>::toJSI(runtime, "paused");
-        case margelo::nitro::nitrovideo::PlaybackStatus::ENDED: return JSIConverter<std::string>::toJSI(runtime, "ended");
-        case margelo::nitro::nitrovideo::PlaybackStatus::ERROR: return JSIConverter<std::string>::toJSI(runtime, "error");
+        case margelo::nitro::jetvideo::PlaybackStatus::IDLE: return JSIConverter<std::string>::toJSI(runtime, "idle");
+        case margelo::nitro::jetvideo::PlaybackStatus::LOADING: return JSIConverter<std::string>::toJSI(runtime, "loading");
+        case margelo::nitro::jetvideo::PlaybackStatus::READYTOPLAY: return JSIConverter<std::string>::toJSI(runtime, "readyToPlay");
+        case margelo::nitro::jetvideo::PlaybackStatus::BUFFERING: return JSIConverter<std::string>::toJSI(runtime, "buffering");
+        case margelo::nitro::jetvideo::PlaybackStatus::PLAYING: return JSIConverter<std::string>::toJSI(runtime, "playing");
+        case margelo::nitro::jetvideo::PlaybackStatus::PAUSED: return JSIConverter<std::string>::toJSI(runtime, "paused");
+        case margelo::nitro::jetvideo::PlaybackStatus::ENDED: return JSIConverter<std::string>::toJSI(runtime, "ended");
+        case margelo::nitro::jetvideo::PlaybackStatus::ERROR: return JSIConverter<std::string>::toJSI(runtime, "error");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert PlaybackStatus to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");

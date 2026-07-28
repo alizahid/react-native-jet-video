@@ -11,7 +11,7 @@ final class VideoCache {
   /// Total cache budget on disk. Configurable via `configureCache`.
   var maxSizeBytes: Int64 = 1024 * 1024 * 1024
 
-  private let queue = DispatchQueue(label: "com.nitrovideo.cache")
+  private let queue = DispatchQueue(label: "com.jetvideo.cache")
   private let directory: URL
   // Entries currently held by a resource loader; excluded from eviction.
   private let activeEntries = NSMapTable<NSString, CacheEntry>(
@@ -21,7 +21,7 @@ final class VideoCache {
 
   init() {
     let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-    directory = caches.appendingPathComponent("NitroVideoCache", isDirectory: true)
+    directory = caches.appendingPathComponent("JetVideoCache", isDirectory: true)
     try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   }
 

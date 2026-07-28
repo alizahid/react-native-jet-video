@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `VideoSource`, backed by a C++ struct.
  */
-public typealias VideoSource = margelo.nitro.nitrovideo.VideoSource
+public typealias VideoSource = margelo.nitro.jetvideo.VideoSource
 
 public extension VideoSource {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `VideoSource`.

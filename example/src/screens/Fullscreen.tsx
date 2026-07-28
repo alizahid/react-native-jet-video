@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { VideoView, type VideoViewRef } from 'react-native-nitro-video'
+import { VideoView, type VideoViewRef } from 'react-native-jet-video'
 
 const SOURCE =
   'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4'

@@ -8,7 +8,7 @@
 /**
  * Represents the JS union `PlaybackStatus`, backed by a C++ enum.
  */
-public typealias PlaybackStatus = margelo.nitro.nitrovideo.PlaybackStatus
+public typealias PlaybackStatus = margelo.nitro.jetvideo.PlaybackStatus
 
 public extension PlaybackStatus {
   /**

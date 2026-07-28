@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `CacheConfig`, backed by a C++ struct.
  */
-public typealias CacheConfig = margelo.nitro.nitrovideo.CacheConfig
+public typealias CacheConfig = margelo.nitro.jetvideo.CacheConfig
 
 public extension CacheConfig {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `CacheConfig`.

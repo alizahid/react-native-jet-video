@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include <optional>
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (VideoSource).
@@ -53,22 +53,22 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const VideoSource& lhs, const VideoSource& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ VideoSource <> JS VideoSource (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::VideoSource> final {
-    static inline margelo::nitro::nitrovideo::VideoSource fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::VideoSource> final {
+    static inline margelo::nitro::jetvideo::VideoSource fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::VideoSource(
+      return margelo::nitro::jetvideo::VideoSource(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "uri"))),
         JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "headers"))),
         JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "cache")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::VideoSource& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::VideoSource& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "uri"), JSIConverter<std::string>::toJSI(runtime, arg.uri));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "headers"), JSIConverter<std::optional<std::unordered_map<std::string, std::string>>>::toJSI(runtime, arg.headers));

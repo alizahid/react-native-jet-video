@@ -32,7 +32,7 @@
 
 #include <string>
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * A struct which can be represented as a JavaScript object (VideoErrorEvent).
@@ -50,21 +50,21 @@ namespace margelo::nitro::nitrovideo {
     friend bool operator==(const VideoErrorEvent& lhs, const VideoErrorEvent& rhs) = default;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ VideoErrorEvent <> JS VideoErrorEvent (object)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::VideoErrorEvent> final {
-    static inline margelo::nitro::nitrovideo::VideoErrorEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::VideoErrorEvent> final {
+    static inline margelo::nitro::jetvideo::VideoErrorEvent fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       jsi::Object obj = arg.asObject(runtime);
-      return margelo::nitro::nitrovideo::VideoErrorEvent(
+      return margelo::nitro::jetvideo::VideoErrorEvent(
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "code"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "message")))
       );
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::nitrovideo::VideoErrorEvent& arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::jetvideo::VideoErrorEvent& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "code"), JSIConverter<std::string>::toJSI(runtime, arg.code));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "message"), JSIConverter<std::string>::toJSI(runtime, arg.message));

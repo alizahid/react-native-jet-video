@@ -10,21 +10,21 @@
 #include "HybridVideoConfigSpec.hpp"
 
 // Forward declaration of `HybridVideoConfigSpec_cxx` to properly resolve imports.
-namespace NitroVideo { class HybridVideoConfigSpec_cxx; }
+namespace JetVideo { class HybridVideoConfigSpec_cxx; }
 
 // Forward declaration of `AutoplayConfig` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct AutoplayConfig; }
+namespace margelo::nitro::jetvideo { struct AutoplayConfig; }
 // Forward declaration of `CacheConfig` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct CacheConfig; }
+namespace margelo::nitro::jetvideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
 #include <optional>
 #include "CacheConfig.hpp"
 #include <NitroModules/Promise.hpp>
 
-#include "NitroVideo-Swift-Cxx-Umbrella.hpp"
+#include "JetVideo-Swift-Cxx-Umbrella.hpp"
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * The C++ part of HybridVideoConfigSpec_cxx.swift.
@@ -39,13 +39,13 @@ namespace margelo::nitro::nitrovideo {
   class HybridVideoConfigSpecSwift: public virtual HybridVideoConfigSpec {
   public:
     // Constructor from a Swift instance
-    explicit HybridVideoConfigSpecSwift(const NitroVideo::HybridVideoConfigSpec_cxx& swiftPart):
+    explicit HybridVideoConfigSpecSwift(const JetVideo::HybridVideoConfigSpec_cxx& swiftPart):
       HybridObject(HybridVideoConfigSpec::TAG),
       _swiftPart(swiftPart) { }
 
   public:
     // Get the Swift part
-    inline NitroVideo::HybridVideoConfigSpec_cxx& getSwiftPart() noexcept {
+    inline JetVideo::HybridVideoConfigSpec_cxx& getSwiftPart() noexcept {
       return _swiftPart;
     }
 
@@ -108,7 +108,7 @@ namespace margelo::nitro::nitrovideo {
     }
 
   private:
-    NitroVideo::HybridVideoConfigSpec_cxx _swiftPart;
+    JetVideo::HybridVideoConfigSpec_cxx _swiftPart;
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo

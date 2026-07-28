@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `VideoErrorEvent`, backed by a C++ struct.
  */
-public typealias VideoErrorEvent = margelo.nitro.nitrovideo.VideoErrorEvent
+public typealias VideoErrorEvent = margelo.nitro.jetvideo.VideoErrorEvent
 
 public extension VideoErrorEvent {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `VideoErrorEvent`.

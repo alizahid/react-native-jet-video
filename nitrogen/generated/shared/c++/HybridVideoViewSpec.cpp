@@ -7,7 +7,7 @@
 
 #include "HybridVideoViewSpec.hpp"
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   void HybridVideoViewSpec::loadHybridMethods() {
     // load base methods/properties
@@ -67,4 +67,4 @@ namespace margelo::nitro::nitrovideo {
     });
   }
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo

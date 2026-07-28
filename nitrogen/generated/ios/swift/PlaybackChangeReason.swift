@@ -8,7 +8,7 @@
 /**
  * Represents the JS union `PlaybackChangeReason`, backed by a C++ enum.
  */
-public typealias PlaybackChangeReason = margelo.nitro.nitrovideo.PlaybackChangeReason
+public typealias PlaybackChangeReason = margelo.nitro.jetvideo.PlaybackChangeReason
 
 public extension PlaybackChangeReason {
   /**

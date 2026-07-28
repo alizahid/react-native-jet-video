@@ -7,14 +7,14 @@ import UniformTypeIdentifiers
 /// written through to the cache as they stream in. AVPlayer talks to this via
 /// a custom URL scheme so it never hits the network directly.
 final class CachingResourceLoader: NSObject {
-  private static let schemePrefix = "nvcache-"
+  private static let schemePrefix = "jvcache-"
   // Extensions safe for transparent range caching. HLS/DASH manifests must NOT
   // go through the loader (their segment URLs would break) and are excluded.
   private static let cacheableExtensions: Set<String> = [
     "mp4", "m4v", "mov", "m4a", "mp3", "aac", "wav",
   ]
 
-  let queue = DispatchQueue(label: "com.nitrovideo.resourceloader")
+  let queue = DispatchQueue(label: "com.jetvideo.resourceloader")
 
   private let originalURL: URL
   private let headers: [String: String]
@@ -279,7 +279,7 @@ private final class RequestHandler {
       entry.setContentInfo(length: total, type: response.mimeType)
     } else {
       finish(error: NSError(
-        domain: "com.nitrovideo.cache",
+        domain: "com.jetvideo.cache",
         code: http.statusCode,
         userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode) while loading video"]
       ))

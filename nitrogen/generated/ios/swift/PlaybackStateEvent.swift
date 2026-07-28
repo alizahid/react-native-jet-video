@@ -10,10 +10,10 @@ import NitroModules
 /**
  * Represents an instance of `PlaybackStateEvent`, backed by a C++ struct.
  */
-public typealias PlaybackStateEvent = margelo.nitro.nitrovideo.PlaybackStateEvent
+public typealias PlaybackStateEvent = margelo.nitro.jetvideo.PlaybackStateEvent
 
 public extension PlaybackStateEvent {
-  private typealias bridge = margelo.nitro.nitrovideo.bridge.swift
+  private typealias bridge = margelo.nitro.jetvideo.bridge.swift
 
   /**
    * Create a new instance of `PlaybackStateEvent`.

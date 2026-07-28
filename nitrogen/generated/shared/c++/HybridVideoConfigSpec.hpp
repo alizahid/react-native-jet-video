@@ -14,15 +14,15 @@
 #endif
 
 // Forward declaration of `AutoplayConfig` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct AutoplayConfig; }
+namespace margelo::nitro::jetvideo { struct AutoplayConfig; }
 // Forward declaration of `CacheConfig` to properly resolve imports.
-namespace margelo::nitro::nitrovideo { struct CacheConfig; }
+namespace margelo::nitro::jetvideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
 #include "CacheConfig.hpp"
 #include <NitroModules/Promise.hpp>
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   using namespace margelo::nitro;
 
@@ -68,4 +68,4 @@ namespace margelo::nitro::nitrovideo {
       static constexpr auto TAG = "VideoConfig";
   };
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo

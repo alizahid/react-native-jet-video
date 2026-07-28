@@ -1,5 +1,5 @@
 {
-  "name": "react-native-nitro-video",
+  "name": "react-native-jet-video",
   "version": "0.1.0",
   "description": "A single-component video view for React Native with visibility-based autoplay, fullscreen, and Picture-in-Picture. Powered by Nitro Modules.",
   "main": "./lib/module/index.js",

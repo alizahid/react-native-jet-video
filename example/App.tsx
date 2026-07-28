@@ -36,7 +36,7 @@ function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>react-native-nitro-video</Text>
+      <Text style={styles.title}>react-native-jet-video</Text>
       <View style={styles.menu}>
         {(Object.keys(SCREENS) as ScreenName[]).map((name) => (
           <Pressable

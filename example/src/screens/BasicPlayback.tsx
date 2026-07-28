@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { VideoView } from 'react-native-nitro-video'
+import { VideoView } from 'react-native-jet-video'
 
 const SOURCES = {
   mp4: 'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4',

@@ -23,7 +23,7 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-namespace margelo::nitro::nitrovideo {
+namespace margelo::nitro::jetvideo {
 
   /**
    * An enum which can be represented as a JavaScript union (PlaybackChangeReason).
@@ -34,28 +34,28 @@ namespace margelo::nitro::nitrovideo {
     SYSTEM      SWIFT_NAME(system) = 2,
   } CLOSED_ENUM;
 
-} // namespace margelo::nitro::nitrovideo
+} // namespace margelo::nitro::jetvideo
 
 namespace margelo::nitro {
 
   // C++ PlaybackChangeReason <> JS PlaybackChangeReason (union)
   template <>
-  struct JSIConverter<margelo::nitro::nitrovideo::PlaybackChangeReason> final {
-    static inline margelo::nitro::nitrovideo::PlaybackChangeReason fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
+  struct JSIConverter<margelo::nitro::jetvideo::PlaybackChangeReason> final {
+    static inline margelo::nitro::jetvideo::PlaybackChangeReason fromJSI(jsi::Runtime& runtime, const jsi::Value& arg) {
       std::string unionValue = JSIConverter<std::string>::fromJSI(runtime, arg);
       switch (hashString(unionValue.c_str(), unionValue.size())) {
-        case hashString("user"): return margelo::nitro::nitrovideo::PlaybackChangeReason::USER;
-        case hashString("coordinator"): return margelo::nitro::nitrovideo::PlaybackChangeReason::COORDINATOR;
-        case hashString("system"): return margelo::nitro::nitrovideo::PlaybackChangeReason::SYSTEM;
+        case hashString("user"): return margelo::nitro::jetvideo::PlaybackChangeReason::USER;
+        case hashString("coordinator"): return margelo::nitro::jetvideo::PlaybackChangeReason::COORDINATOR;
+        case hashString("system"): return margelo::nitro::jetvideo::PlaybackChangeReason::SYSTEM;
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert \"" + unionValue + "\" to enum PlaybackChangeReason - invalid value!");
       }
     }
-    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::nitrovideo::PlaybackChangeReason arg) {
+    static inline jsi::Value toJSI(jsi::Runtime& runtime, margelo::nitro::jetvideo::PlaybackChangeReason arg) {
       switch (arg) {
-        case margelo::nitro::nitrovideo::PlaybackChangeReason::USER: return JSIConverter<std::string>::toJSI(runtime, "user");
-        case margelo::nitro::nitrovideo::PlaybackChangeReason::COORDINATOR: return JSIConverter<std::string>::toJSI(runtime, "coordinator");
-        case margelo::nitro::nitrovideo::PlaybackChangeReason::SYSTEM: return JSIConverter<std::string>::toJSI(runtime, "system");
+        case margelo::nitro::jetvideo::PlaybackChangeReason::USER: return JSIConverter<std::string>::toJSI(runtime, "user");
+        case margelo::nitro::jetvideo::PlaybackChangeReason::COORDINATOR: return JSIConverter<std::string>::toJSI(runtime, "coordinator");
+        case margelo::nitro::jetvideo::PlaybackChangeReason::SYSTEM: return JSIConverter<std::string>::toJSI(runtime, "system");
         default: [[unlikely]]
           throw std::invalid_argument("Cannot convert PlaybackChangeReason to JS - invalid value: "
                                     + std::to_string(static_cast<int>(arg)) + "!");
