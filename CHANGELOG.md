@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed flicker when exiting fullscreen: the inline layer is blanked while
+  AVKit owns rendering (no double image behind the shrinking video),
+  fullscreen chrome is dropped as the exit starts (no controls flash at the
+  inline rect), and the embedded view is removed only once the inline layer
+  has a frame ready (no black flash on handback).
+
 - **Breaking:** `onProgress` now reports `bufferedPosition` — the absolute
   position up to which media is buffered contiguously from the playhead
   (what scrubbers draw) — replacing `bufferedDuration`, which was the

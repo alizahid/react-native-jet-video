@@ -95,25 +95,64 @@ final class FullscreenPresenter: NSObject {
     engine = nil
     view = nil
 
-    if let finishedController {
-      finishedController.willMove(toParent: nil)
-      finishedController.view.removeFromSuperview()
-      finishedController.removeFromParent()
-      finishedController.delegate = nil
-      finishedController.player = nil
-    }
-
     if let finishedView, finishedView.engine === finishedEngine {
+      // Hand rendering back to the inline layer, then unveil it only once it
+      // has a frame — removing the controller's view before the layer renders
+      // flashes black at the inline rect.
+      let surface = finishedView.view as? PlayerLayerView
+      surface?.player = finishedEngine?.player
       finishedView.fullscreenExitPlaybackIntent(wasPlaying: wasPlayingAtExitStart)
       finishedView.fullscreenTransition(active: false)
+      if let finishedController {
+        Self.tearDownWhenSurfaceReady(finishedController, surface: surface)
+      }
     } else {
       // The cell was recycled to a new source (or unmounted) mid-fullscreen;
       // this engine is orphaned — stop it.
       finishedEngine?.pause(reason: .system)
+      if let finishedController {
+        Self.tearDown(finishedController)
+      }
     }
 
     exitCompletion?(nil)
     exitCompletion = nil
+  }
+
+  private static func tearDown(_ controller: AVPlayerViewController) {
+    controller.willMove(toParent: nil)
+    controller.view.removeFromSuperview()
+    controller.removeFromParent()
+    controller.delegate = nil
+    controller.player = nil
+  }
+
+  /// Removes the (chrome-less) embedded controller only once the inline layer
+  /// reports a frame ready for display, so the swap is invisible. Falls back
+  /// to a timed removal if readiness never arrives.
+  private static func tearDownWhenSurfaceReady(
+    _ controller: AVPlayerViewController,
+    surface: PlayerLayerView?
+  ) {
+    guard let layer = surface?.playerLayer, !layer.isReadyForDisplay else {
+      tearDown(controller)
+      return
+    }
+    var observation: NSKeyValueObservation?
+    var finished = false
+    let complete = {
+      guard !finished else { return }
+      finished = true
+      observation?.invalidate()
+      observation = nil
+      tearDown(controller)
+    }
+    observation = layer.observe(\.isReadyForDisplay) { layer, _ in
+      if layer.isReadyForDisplay {
+        DispatchQueue.main.async { complete() }
+      }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { complete() }
   }
 
   // MARK: - AVKit transition
@@ -144,6 +183,9 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
     _ playerViewController: AVPlayerViewController,
     willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
+    // AVKit owns rendering from here: blank the inline layer so it can't show
+    // a second copy of the video behind the animating fullscreen view.
+    (view?.view as? PlayerLayerView)?.player = nil
     view?.fullscreenTransition(active: true)
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
       self?.enterCompletion?(nil)
@@ -157,6 +199,10 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
   ) {
     // Capture before AVKit's implicit pause during dismissal.
     wasPlayingAtExitStart = playerViewController.player?.timeControlStatus != .paused
+    // Drop the fullscreen chrome now: the embedded view shows bare video
+    // during the shrink and the brief handback window, instead of flashing
+    // playback controls at the inline rect.
+    playerViewController.showsPlaybackControls = false
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
       self?.finishExit()
     }
