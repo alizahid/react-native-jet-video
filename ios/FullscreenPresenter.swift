@@ -20,6 +20,14 @@ final class FullscreenPresenter: NSObject {
 
   var isPresenting: Bool { controller != nil }
 
+  /// True while this engine's player is rendered by the fullscreen
+  /// presentation. Inline surfaces must not attach the player then — a second
+  /// copy of the video shows behind the fullscreen view (visible during
+  /// AVKit's interactive drag-to-dismiss).
+  func isPresenting(engine: PlayerEngine) -> Bool {
+    controller != nil && self.engine === engine
+  }
+
   // MARK: - Enter
 
   func enter(for view: HybridVideoView, completion: @escaping (Error?) -> Void) {
@@ -96,14 +104,12 @@ final class FullscreenPresenter: NSObject {
     view = nil
 
     if let finishedView, finishedView.engine === finishedEngine {
-      // Hand rendering back to the inline layer, then unveil it only once it
-      // has a frame — removing the controller's view before the layer renders
-      // flashes black at the inline rect. In controls mode the embedded
-      // controller owns rendering; the inline layer must stay blank.
+      // Hand rendering back to the active inline surface (bare layer, or the
+      // embedded controller in controls mode), then remove the fullscreen
+      // controller only once the layer has a frame — removing it before the
+      // inline surface renders flashes black at the inline rect.
       let surface = finishedView.view as? PlayerLayerView
-      if !finishedView.hasEmbeddedControls {
-        surface?.player = finishedEngine?.player
-      }
+      finishedView.resumeInlineRendering()
       finishedView.fullscreenExitPlaybackIntent(wasPlaying: wasPlayingAtExitStart)
       finishedView.fullscreenTransition(active: false)
       if let finishedController {
@@ -186,9 +192,10 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
     _ playerViewController: AVPlayerViewController,
     willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
-    // AVKit owns rendering from here: blank the inline layer so it can't show
-    // a second copy of the video behind the animating fullscreen view.
-    (view?.view as? PlayerLayerView)?.player = nil
+    // AVKit owns rendering from here: blank every inline surface (bare layer
+    // and embedded controls controller) so nothing shows a second copy of the
+    // video behind the animating fullscreen view.
+    view?.suspendInlineRendering()
     view?.fullscreenTransition(active: true)
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
       self?.enterCompletion?(nil)

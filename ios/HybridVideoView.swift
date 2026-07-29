@@ -122,10 +122,13 @@ class HybridVideoView: HybridVideoViewSpec {
 
   var muted: Bool = false {
     didSet {
-      engine.isMuted = muted
+      // Session config must precede the unmute: flipping the category or
+      // activating the session while unmuted samples are already rendering
+      // reconfigures the audio graph mid-stream and audibly pops.
       if !muted, engine.status == .playing || engine.status == .buffering {
         AudioSessionManager.shared.willPlay(muted: false, mixMode: audioMixMode)
       }
+      engine.isMuted = muted
     }
   }
 
@@ -397,6 +400,26 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
+  // MARK: - Inline rendering handoff (fullscreen presenter)
+
+  /// Blanks every inline render surface while the fullscreen presenter owns
+  /// this engine's rendering.
+  func suspendInlineRendering() {
+    surface.player = nil
+    embeddedController?.player = nil
+  }
+
+  /// Hands rendering back to whichever inline surface is active. In controls
+  /// mode the embedded controller owns rendering and the bare layer must stay
+  /// blank.
+  func resumeInlineRendering() {
+    if let embeddedController {
+      embeddedController.player = engine.player
+    } else {
+      surface.player = engine.player
+    }
+  }
+
   // MARK: - Controls surface
 
   private func updateControlsSurface() {
@@ -407,7 +430,11 @@ class HybridVideoView: HybridVideoViewSpec {
         return
       }
       let controller = AVPlayerViewController()
-      controller.player = engine.player
+      // While the fullscreen presenter renders this engine, the embedded
+      // surface mounts blank — FullscreenPresenter.finishExit hands the
+      // player over via resumeInlineRendering().
+      controller.player =
+        FullscreenPresenter.shared.isPresenting(engine: engine) ? nil : engine.player
       controller.videoGravity = PlayerLayerView.gravity(for: resizeMode)
       controller.allowsPictureInPicturePlayback = allowsPictureInPicture
       controller.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
@@ -437,7 +464,8 @@ class HybridVideoView: HybridVideoViewSpec {
       controller.removeFromParent()
       controller.player = nil
       embeddedController = nil
-      surface.player = engine.player
+      surface.player =
+        FullscreenPresenter.shared.isPresenting(engine: engine) ? nil : engine.player
     }
   }
 

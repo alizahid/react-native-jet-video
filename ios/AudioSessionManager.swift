@@ -14,6 +14,7 @@ final class AudioSessionManager {
   static var isManagementEnabled = true
 
   private var escalated = false
+  private var appliedCategory: AVAudioSession.Category?
   private var appliedOptions: AVAudioSession.CategoryOptions?
 
   /// Called just before any playback starts, and when a playing video unmutes.
@@ -21,11 +22,7 @@ final class AudioSessionManager {
     guard Self.isManagementEnabled else { return }
     if muted {
       guard !escalated else { return }
-      try? AVAudioSession.sharedInstance().setCategory(
-        .ambient,
-        mode: .moviePlayback,
-        options: [.mixWithOthers]
-      )
+      apply(category: .ambient, options: [.mixWithOthers], activate: false)
     } else {
       escalate(options: Self.options(for: mixMode))
     }
@@ -48,11 +45,29 @@ final class AudioSessionManager {
 
   private func escalate(options: AVAudioSession.CategoryOptions) {
     guard !escalated || appliedOptions != options else { return }
-    let session = AVAudioSession.sharedInstance()
-    try? session.setCategory(.playback, mode: .moviePlayback, options: options)
-    try? session.setActive(true)
+    // Activate only on the first escalation — the session stays active after
+    // that, and redundant setActive(true) calls audibly dip other apps' audio.
+    apply(category: .playback, options: options, activate: !escalated)
     escalated = true
-    appliedOptions = options
+  }
+
+  /// Applies the category only when it actually changes: every setCategory
+  /// call rebuilds the audio route, which can pop mid-playback and duck other
+  /// apps' audio — repeated same-value sets are pure downside.
+  private func apply(
+    category: AVAudioSession.Category,
+    options: AVAudioSession.CategoryOptions,
+    activate: Bool
+  ) {
+    let session = AVAudioSession.sharedInstance()
+    if appliedCategory != category || appliedOptions != options {
+      try? session.setCategory(category, mode: .moviePlayback, options: options)
+      appliedCategory = category
+      appliedOptions = options
+    }
+    if activate {
+      try? session.setActive(true)
+    }
   }
 
   private static func options(for mixMode: AudioMixMode) -> AVAudioSession.CategoryOptions {
