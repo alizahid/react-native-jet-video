@@ -22,7 +22,7 @@ const appPlugin = createRunOncePlugin(
   pkg.version,
 )
 
-const withJetVideo = (options) => (config) => appPlugin(config, options)
+const withJetVideo = (options = {}) => [pkg.name, options]
 
 module.exports = withJetVideo
 module.exports.withJetVideo = withJetVideo

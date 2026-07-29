@@ -19,15 +19,17 @@ export type JetVideoPluginOptions = {
 }
 
 /**
- * Usage in app.config.ts:
+ * Returns the static plugin tuple for `ExpoConfig['plugins']`:
  *
  * ```ts
  * plugins: [withJetVideo({ supportsPictureInPicture: true })]
  * ```
  */
-declare function withJetVideo(options?: JetVideoPluginOptions): ConfigPlugin
+declare function withJetVideo(
+  options?: JetVideoPluginOptions,
+): [string, JetVideoPluginOptions]
 
-/** Classic `(config, props)` plugin, used by `app.plugin.js` for the string form. */
+/** The actual `(config, props)` plugin, resolved via `app.plugin.js`. */
 declare const appPlugin: ConfigPlugin<JetVideoPluginOptions | void>
 
 export default withJetVideo
