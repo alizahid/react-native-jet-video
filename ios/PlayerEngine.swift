@@ -62,9 +62,30 @@ final class PlayerEngine {
     player.currentItem?.preferredForwardBufferDuration = active ? 0 : 2
   }
 
-  /// Invoked synchronously right before playback starts, so the audio session
-  /// can be configured before the first audio render.
-  var willPlay: (() -> Void)?
+  /// Invoked right before playback starts. Receives a `proceed` continuation:
+  /// the owner configures the audio session (possibly asynchronously, off the
+  /// main thread) and calls `proceed` once it's safe to render audio.
+  var willPlay: ((@escaping () -> Void) -> Void)?
+
+  /// Monotonic token for in-flight play intents: a pause or source change
+  /// after play() was called must win over the (possibly async) session
+  /// configuration completing.
+  private var playIntent = 0
+
+  /// While set, an externally-initiated pause is immediately reverted — AVKit
+  /// implicitly pauses the player during fullscreen present/dismiss, which
+  /// otherwise freezes the video and gaps the audio for the length of the
+  /// animation. Cleared by any explicit pause.
+  private var transitionHold = false
+
+  func beginTransitionPlaybackHold() {
+    guard status == .playing || status == .buffering else { return }
+    transitionHold = true
+  }
+
+  func endTransitionPlaybackHold() {
+    transitionHold = false
+  }
 
   // The reason attached to the next play/pause-driven status transition.
   private var pendingReason: PlaybackChangeReason = .system
@@ -82,8 +103,12 @@ final class PlayerEngine {
     player.automaticallyWaitsToMinimizeStalling = true
     timeControlObservation = player.observe(\.timeControlStatus) { [weak self] _, _ in
       DispatchQueue.main.async {
-        self?.applyBufferPolicy()
-        self?.recomputeStatus()
+        guard let self else { return }
+        if self.transitionHold, !self.reachedEnd, self.player.timeControlStatus == .paused {
+          self.player.play()
+        }
+        self.applyBufferPolicy()
+        self.recomputeStatus()
       }
     }
     rebuildTimeObserver()
@@ -112,6 +137,13 @@ final class PlayerEngine {
     isHibernated = false
     resumeTime = 0
     isLiveStream = false
+    playIntent += 1
+
+    // replaceCurrentItem preserves the player's rate: a recycled cell whose
+    // engine was playing would silently start the NEW source the moment it
+    // loads — at any visibility, without any play() call. A source change
+    // always starts paused; autoplay/coordinator decide from there.
+    player.pause()
 
     detachItem()
     reachedEnd = false
@@ -210,16 +242,27 @@ final class PlayerEngine {
     if status == .error {
       retry()
     }
-    willPlay?()
-    pendingReason = reason
-    if reachedEnd {
-      reachedEnd = false
-      player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+    playIntent += 1
+    let intent = playIntent
+    let start = { [weak self] in
+      guard let self, playIntent == intent else { return }
+      pendingReason = reason
+      if reachedEnd {
+        reachedEnd = false
+        player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
+      }
+      player.play()
     }
-    player.play()
+    if let willPlay {
+      willPlay(start)
+    } else {
+      start()
+    }
   }
 
   func pause(reason: PlaybackChangeReason) {
+    playIntent += 1
+    transitionHold = false
     pendingReason = reason
     player.pause()
   }

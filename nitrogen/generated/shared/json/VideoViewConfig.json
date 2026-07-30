@@ -16,6 +16,8 @@
     "progressUpdateInterval": true,
     "audioMixMode": true,
     "coordinatorGroup": true,
+    "visibilityAxis": true,
+    "minVisibleFraction": true,
     "onLoad": true,
     "onProgress": true,
     "onEnd": true,

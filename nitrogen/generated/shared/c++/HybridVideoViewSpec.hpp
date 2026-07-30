@@ -21,6 +21,8 @@ namespace margelo::nitro::jetvideo { enum class AutoplayMode; }
 namespace margelo::nitro::jetvideo { enum class ResizeMode; }
 // Forward declaration of `AudioMixMode` to properly resolve imports.
 namespace margelo::nitro::jetvideo { enum class AudioMixMode; }
+// Forward declaration of `VisibilityAxis` to properly resolve imports.
+namespace margelo::nitro::jetvideo { enum class VisibilityAxis; }
 // Forward declaration of `LoadEvent` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct LoadEvent; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
@@ -36,6 +38,7 @@ namespace margelo::nitro::jetvideo { struct PlaybackStateEvent; }
 #include "ResizeMode.hpp"
 #include <string>
 #include "AudioMixMode.hpp"
+#include "VisibilityAxis.hpp"
 #include "LoadEvent.hpp"
 #include <functional>
 #include "ProgressEvent.hpp"
@@ -94,6 +97,10 @@ namespace margelo::nitro::jetvideo {
       virtual void setAudioMixMode(AudioMixMode audioMixMode) = 0;
       virtual std::optional<std::string> getCoordinatorGroup() = 0;
       virtual void setCoordinatorGroup(const std::optional<std::string>& coordinatorGroup) = 0;
+      virtual VisibilityAxis getVisibilityAxis() = 0;
+      virtual void setVisibilityAxis(VisibilityAxis visibilityAxis) = 0;
+      virtual double getMinVisibleFraction() = 0;
+      virtual void setMinVisibleFraction(double minVisibleFraction) = 0;
       virtual std::optional<std::function<void(const LoadEvent& /* event */)>> getOnLoad() = 0;
       virtual void setOnLoad(const std::optional<std::function<void(const LoadEvent& /* event */)>>& onLoad) = 0;
       virtual std::optional<std::function<void(const ProgressEvent& /* event */)>> getOnProgress() = 0;

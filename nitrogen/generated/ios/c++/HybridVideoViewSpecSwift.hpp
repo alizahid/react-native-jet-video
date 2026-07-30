@@ -20,6 +20,8 @@ namespace margelo::nitro::jetvideo { enum class AutoplayMode; }
 namespace margelo::nitro::jetvideo { enum class ResizeMode; }
 // Forward declaration of `AudioMixMode` to properly resolve imports.
 namespace margelo::nitro::jetvideo { enum class AudioMixMode; }
+// Forward declaration of `VisibilityAxis` to properly resolve imports.
+namespace margelo::nitro::jetvideo { enum class VisibilityAxis; }
 // Forward declaration of `LoadEvent` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct LoadEvent; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
@@ -40,6 +42,7 @@ namespace margelo::nitro::jetvideo { enum class PlaybackChangeReason; }
 #include "AutoplayMode.hpp"
 #include "ResizeMode.hpp"
 #include "AudioMixMode.hpp"
+#include "VisibilityAxis.hpp"
 #include "LoadEvent.hpp"
 #include <functional>
 #include "ProgressEvent.hpp"
@@ -172,6 +175,19 @@ namespace margelo::nitro::jetvideo {
     }
     inline void setCoordinatorGroup(const std::optional<std::string>& coordinatorGroup) noexcept override {
       _swiftPart.setCoordinatorGroup(coordinatorGroup);
+    }
+    inline VisibilityAxis getVisibilityAxis() noexcept override {
+      auto __result = _swiftPart.getVisibilityAxis();
+      return static_cast<VisibilityAxis>(__result);
+    }
+    inline void setVisibilityAxis(VisibilityAxis visibilityAxis) noexcept override {
+      _swiftPart.setVisibilityAxis(static_cast<int>(visibilityAxis));
+    }
+    inline double getMinVisibleFraction() noexcept override {
+      return _swiftPart.getMinVisibleFraction();
+    }
+    inline void setMinVisibleFraction(double minVisibleFraction) noexcept override {
+      _swiftPart.setMinVisibleFraction(std::forward<decltype(minVisibleFraction)>(minVisibleFraction));
     }
     inline std::optional<std::function<void(const LoadEvent& /* event */)>> getOnLoad() noexcept override {
       auto __result = _swiftPart.getOnLoad();

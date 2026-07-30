@@ -22,6 +22,8 @@ public protocol HybridVideoViewSpec_protocol: HybridObject, HybridView {
   var progressUpdateInterval: Double { get set }
   var audioMixMode: AudioMixMode { get set }
   var coordinatorGroup: String? { get set }
+  var visibilityAxis: VisibilityAxis { get set }
+  var minVisibleFraction: Double { get set }
   var onLoad: ((_ event: LoadEvent) -> Void)? { get set }
   var onProgress: ((_ event: ProgressEvent) -> Void)? { get set }
   var onEnd: (() -> Void)? { get set }

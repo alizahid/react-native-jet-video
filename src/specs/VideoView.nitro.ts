@@ -17,6 +17,8 @@ export type ResizeMode = 'contain' | 'cover' | 'stretch'
 
 export type AudioMixMode = 'mixWithOthers' | 'duckOthers' | 'doNotMix'
 
+export type VisibilityAxis = 'both' | 'vertical' | 'horizontal'
+
 export type PlaybackStatus =
   | 'idle'
   | 'loading'
@@ -69,6 +71,11 @@ export interface VideoViewProps extends HybridViewProps {
   progressUpdateInterval: number
   audioMixMode: AudioMixMode
   coordinatorGroup?: string
+  visibilityAxis: VisibilityAxis
+  /** Negative means "use the global configureAutoplay value". Never optional:
+   * clearing an optional number prop makes Fabric send an explicit null,
+   * which Nitro's prop parser rejects. */
+  minVisibleFraction: number
 
   onLoad?: (event: LoadEvent) => void
   onProgress?: (event: ProgressEvent) => void

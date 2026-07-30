@@ -9,18 +9,26 @@ export function Fullscreen() {
   const chromeless = useRef<VideoViewRef>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [log, setLog] = useState('')
+  const [time, setTime] = useState(0)
+  const [status, setStatus] = useState('idle')
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>controls=false + enterFullscreen()</Text>
+      <Text style={styles.label}>
+        controls={'{isFullscreen}'} + enterFullscreen()
+      </Text>
       <VideoView
         ref={chromeless}
         source={SOURCE}
         autoplay
         muted
         loop
+        controls={isFullscreen}
         style={styles.video}
         onFullscreenChange={setIsFullscreen}
+        onPlaybackStateChange={(event) => setStatus(event.status)}
+        onProgress={(event) => setTime(event.currentTime)}
+        progressUpdateInterval={100}
       />
       <View style={styles.row}>
         <Pressable
@@ -47,8 +55,9 @@ export function Fullscreen() {
         style={styles.video}
       />
 
-      <Text style={styles.info}>
-        fullscreen: {String(isFullscreen)} {log ? `· ${log}` : ''}
+      <Text style={styles.info} testID="fullscreen-info">
+        fullscreen: {String(isFullscreen)} · t={time.toFixed(2)} · {status}
+        {log ? ` · ${log}` : ''}
       </Text>
     </View>
   )

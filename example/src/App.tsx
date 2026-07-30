@@ -7,12 +7,14 @@ import { Fullscreen } from './screens/Fullscreen'
 import { PictureInPicture } from './screens/PictureInPicture'
 import { RefMethods } from './screens/RefMethods'
 import { Stacked } from './screens/Stacked'
+import { SwipeActions } from './screens/SwipeActions'
 
 const SCREENS = {
   BasicPlayback: BasicPlayback,
   RefMethods: RefMethods,
   Feed: Feed,
   Stacked: Stacked,
+  SwipeActions: SwipeActions,
   Fullscreen: Fullscreen,
   PictureInPicture: PictureInPicture,
   Cache: Cache,

@@ -14,7 +14,9 @@ function nativeConfig(): VideoConfig {
 
 /**
  * Tunes the visibility-based autoplay election globally.
- * Optional — the defaults (50% visibility threshold, 10% hysteresis) fit most feeds.
+ * Optional — the defaults (20% visibility threshold, 10% hysteresis) fit most
+ * feeds. The threshold can also be overridden per view with the
+ * `minVisibleFraction` prop.
  */
 export function configureAutoplay(options: AutoplayConfig): void {
   nativeConfig().configureAutoplay(options)

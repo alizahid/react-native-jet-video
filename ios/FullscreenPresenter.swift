@@ -42,6 +42,9 @@ final class FullscreenPresenter: NSObject {
 
     let controller = AVPlayerViewController()
     controller.player = view.engine.player
+    // Registering as the Now Playing app forcibly interrupts other apps'
+    // audio — never do it implicitly.
+    controller.updatesNowPlayingInfoCenter = false
     controller.showsPlaybackControls = true
     controller.videoGravity = PlayerLayerView.gravity(for: view.resizeMode)
     controller.allowsPictureInPicturePlayback = view.allowsPictureInPicture
@@ -50,6 +53,10 @@ final class FullscreenPresenter: NSObject {
     self.controller = controller
     engine = view.engine
     self.view = view
+
+    // AVKit implicitly pauses the player at points during its transitions —
+    // hold playback so the video keeps rolling through the animation.
+    view.engine.beginTransitionPlaybackHold()
 
     if Self.supportsAVKitTransition(controller) {
       // Embed over the inline surface so AVKit's transition zooms out of
@@ -69,6 +76,7 @@ final class FullscreenPresenter: NSObject {
     } else {
       controller.modalPresentationStyle = .fullScreen
       parent.present(controller, animated: true) { [weak self] in
+        self?.engine?.endTransitionPlaybackHold()
         self?.view?.fullscreenTransition(active: true)
         completion(nil)
       }
@@ -83,6 +91,7 @@ final class FullscreenPresenter: NSObject {
       return
     }
     exitCompletion = completion
+    engine?.beginTransitionPlaybackHold()
     if Self.supportsAVKitTransition(controller), controller.parent != nil {
       Self.performTransition(controller, selectorName: "exitFullScreenAnimated:completionHandler:")
     } else {
@@ -113,7 +122,15 @@ final class FullscreenPresenter: NSObject {
       finishedView.fullscreenExitPlaybackIntent(wasPlaying: wasPlayingAtExitStart)
       finishedView.fullscreenTransition(active: false)
       if let finishedController {
-        Self.tearDownWhenSurfaceReady(finishedController, surface: surface)
+        // Hold playback through teardown too: disconnecting the dismissed
+        // controller (player = nil) can also nudge the player into a pause.
+        Self.tearDownWhenSurfaceReady(finishedController, surface: surface) {
+          finishedEngine?.endTransitionPlaybackHold()
+          finishedView.applyPendingControlsUpdate()
+        }
+      } else {
+        finishedEngine?.endTransitionPlaybackHold()
+        finishedView.applyPendingControlsUpdate()
       }
     } else {
       // The cell was recycled to a new source (or unmounted) mid-fullscreen;
@@ -141,10 +158,12 @@ final class FullscreenPresenter: NSObject {
   /// to a timed removal if readiness never arrives.
   private static func tearDownWhenSurfaceReady(
     _ controller: AVPlayerViewController,
-    surface: PlayerLayerView?
+    surface: PlayerLayerView?,
+    completion: @escaping () -> Void
   ) {
     guard let layer = surface?.playerLayer, !layer.isReadyForDisplay else {
       tearDown(controller)
+      completion()
       return
     }
     var observation: NSKeyValueObservation?
@@ -155,6 +174,7 @@ final class FullscreenPresenter: NSObject {
       observation?.invalidate()
       observation = nil
       tearDown(controller)
+      completion()
     }
     observation = layer.observe(\.isReadyForDisplay) { layer, _ in
       if layer.isReadyForDisplay {
@@ -198,6 +218,7 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
     view?.suspendInlineRendering()
     view?.fullscreenTransition(active: true)
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+      self?.engine?.endTransitionPlaybackHold()
       self?.enterCompletion?(nil)
       self?.enterCompletion = nil
     }
@@ -207,8 +228,11 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
     _ playerViewController: AVPlayerViewController,
     willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
-    // Capture before AVKit's implicit pause during dismissal.
+    // Capture before AVKit's implicit pause during dismissal. Begin the hold
+    // here too — this is the only hook when AVKit itself initiates the exit
+    // (the user tapping the fullscreen Done button never goes through exit()).
     wasPlayingAtExitStart = playerViewController.player?.timeControlStatus != .paused
+    engine?.beginTransitionPlaybackHold()
     // Drop the fullscreen chrome now: the embedded view shows bare video
     // during the shrink and the brief handback window, instead of flashing
     // playback controls at the inline rect.

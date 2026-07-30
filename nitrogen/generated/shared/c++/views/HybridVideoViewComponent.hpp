@@ -22,6 +22,7 @@
 #include "ResizeMode.hpp"
 #include <string>
 #include "AudioMixMode.hpp"
+#include "VisibilityAxis.hpp"
 #include "LoadEvent.hpp"
 #include <functional>
 #include "ProgressEvent.hpp"
@@ -62,6 +63,8 @@ namespace margelo::nitro::jetvideo::views {
     CachedProp<double> progressUpdateInterval;
     CachedProp<AudioMixMode> audioMixMode;
     CachedProp<std::optional<std::string>> coordinatorGroup;
+    CachedProp<VisibilityAxis> visibilityAxis;
+    CachedProp<double> minVisibleFraction;
     CachedProp<std::optional<std::function<void(const LoadEvent& /* event */)>>> onLoad;
     CachedProp<std::optional<std::function<void(const ProgressEvent& /* event */)>>> onProgress;
     CachedProp<std::optional<std::function<void()>>> onEnd;

@@ -124,11 +124,20 @@ class HybridVideoView: HybridVideoViewSpec {
     didSet {
       // Session config must precede the unmute: flipping the category or
       // activating the session while unmuted samples are already rendering
-      // reconfigures the audio graph mid-stream and audibly pops.
+      // reconfigures the audio graph mid-stream and audibly pops. The config
+      // runs off-main; unmute once it lands (unless the user flipped back).
       if !muted, engine.status == .playing || engine.status == .buffering {
-        AudioSessionManager.shared.willPlay(muted: false, mixMode: audioMixMode)
+        AudioSessionManager.shared.willPlay(
+          muted: false,
+          mixMode: audioMixMode,
+          requiresPlaybackCategory: allowsPictureInPicture
+        ) { [weak self] in
+          guard let self, !self.muted else { return }
+          engine.isMuted = false
+        }
+      } else {
+        engine.isMuted = muted
       }
-      engine.isMuted = muted
     }
   }
 
@@ -169,7 +178,13 @@ class HybridVideoView: HybridVideoViewSpec {
     didSet {
       embeddedController?.allowsPictureInPicturePlayback = allowsPictureInPicture
       embeddedController?.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
-      updatePiPSetup()
+      if !allowsPictureInPicture {
+        pipManager.teardown()
+      } else if engine.status == .playing || engine.status == .buffering {
+        // Enabled mid-playback: set up now so auto-PiP works without
+        // waiting for the next play.
+        updatePiPSetup()
+      }
     }
   }
 
@@ -178,6 +193,21 @@ class HybridVideoView: HybridVideoViewSpec {
   }
 
   var audioMixMode: AudioMixMode = .mixwithothers
+
+  var visibilityAxis: VisibilityAxis = .both {
+    didSet {
+      guard visibilityAxis != oldValue else { return }
+      coordinator?.noteStateInvalidated()
+    }
+  }
+
+  /// Negative = defer to the global (configureAutoplay) threshold.
+  var minVisibleFraction: Double = -1 {
+    didSet {
+      guard minVisibleFraction != oldValue else { return }
+      coordinator?.noteStateInvalidated()
+    }
+  }
 
   var coordinatorGroup: String? = nil {
     didSet {
@@ -310,12 +340,14 @@ class HybridVideoView: HybridVideoViewSpec {
     let promise = Promise<Void>()
     DispatchQueue.main.async { [self] in
       updatePiPSetup()
-      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode)
-      pipManager.start { error in
-        if let error {
-          promise.reject(withError: error)
-        } else {
-          promise.resolve(withResult: ())
+      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode) { [weak self] in
+        guard let self else { return }
+        pipManager.start { error in
+          if let error {
+            promise.reject(withError: error)
+          } else {
+            promise.resolve(withResult: ())
+          }
         }
       }
     }
@@ -350,22 +382,36 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
+  /// Creates the AVPictureInPictureController for this view's layer. Deferred
+  /// to playback (never mount): instantiating a PiP controller is expensive
+  /// and registers with the system's media services — doing it for every
+  /// mounting feed cell at app open blocks the main thread for seconds and
+  /// can knock out other apps' background audio. Only the video that actually
+  /// plays needs one (auto-PiP only ever engages for playing content).
   private func updatePiPSetup() {
     guard allowsPictureInPicture, !controls, surface.window != nil else { return }
     pipManager.setup(playerLayer: surface.playerLayer)
-    // Auto-entering PiP on background requires the .playback category up
-    // front — but merely mounting a PiP-capable view must not interrupt
-    // other apps' audio, so this never applies duck/doNotMix; play and
-    // explicit PiP start apply the real mix mode.
-    AudioSessionManager.shared.prepareForPictureInPicture()
   }
 
   // MARK: - Engine management
 
   private func attachEngineHooks() {
-    engine.willPlay = { [weak self] in
-      guard let self else { return }
-      AudioSessionManager.shared.willPlay(muted: muted, mixMode: audioMixMode)
+    engine.willPlay = { [weak self] proceed in
+      guard let self else {
+        proceed()
+        return
+      }
+      // PiP setup rides the play path: the playing video is the only one
+      // auto-PiP can pick up, and it must exist before the app backgrounds.
+      updatePiPSetup()
+      AudioSessionManager.shared.willPlay(
+        muted: muted,
+        mixMode: audioMixMode,
+        // PiP (including auto-PiP on backgrounding) requires the .playback
+        // category to be in place while the video plays.
+        requiresPlaybackCategory: allowsPictureInPicture,
+        completion: proceed
+      )
     }
   }
 
@@ -398,6 +444,10 @@ class HybridVideoView: HybridVideoViewSpec {
     } else {
       surface.player = engine.player
     }
+    // A controls change deferred during the (now-orphaned) fullscreen
+    // presentation applies to the fresh engine's surface — the orphan exit
+    // path never notifies this view.
+    applyPendingControlsUpdate()
   }
 
   // MARK: - Inline rendering handoff (fullscreen presenter)
@@ -422,7 +472,32 @@ class HybridVideoView: HybridVideoViewSpec {
 
   // MARK: - Controls surface
 
+  /// Set when a `controls` change arrives while a fullscreen presentation
+  /// owns this engine's rendering. Building or tearing down the embedded
+  /// AVPlayerViewController mid-transition swaps renderers during the
+  /// animation (visible jank), and attaching a playing player to a fresh
+  /// controller makes AVKit re-sync its scrubber with a tolerance-y seek —
+  /// the playhead audibly jumps back. Applied after the handback settles.
+  private var pendingControlsUpdate = false
+
+  func applyPendingControlsUpdate() {
+    guard pendingControlsUpdate else { return }
+    // Small grace so a transient flip (apps toggling `controls` off the
+    // fullscreen state, which lands via JS just after the exit) settles to
+    // its final value before the surface is rebuilt.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+      guard let self, pendingControlsUpdate else { return }
+      pendingControlsUpdate = false
+      updateControlsSurface()
+    }
+  }
+
   private func updateControlsSurface() {
+    if FullscreenPresenter.shared.isPresenting(engine: engine) || isFullscreen {
+      pendingControlsUpdate = true
+      return
+    }
+    pendingControlsUpdate = false
     if controls {
       guard embeddedController == nil, surface.window != nil,
             let parent = surface.nearestViewController else {
@@ -430,6 +505,9 @@ class HybridVideoView: HybridVideoViewSpec {
         return
       }
       let controller = AVPlayerViewController()
+      // Registering as the Now Playing app forcibly interrupts other apps'
+      // audio — never do it implicitly.
+      controller.updatesNowPlayingInfoCenter = false
       // While the fullscreen presenter renders this engine, the embedded
       // surface mounts blank — FullscreenPresenter.finishExit hands the
       // player over via resumeInlineRendering().
@@ -502,8 +580,6 @@ class HybridVideoView: HybridVideoViewSpec {
       resumePlaybackOnAttach = false
       if controls, embeddedController == nil {
         updateControlsSurface()
-      } else {
-        updatePiPSetup()
       }
     }
   }
@@ -522,6 +598,9 @@ class HybridVideoView: HybridVideoViewSpec {
         posterView.isHidden = false
       }
       engine.hibernate()
+      // Covered screens don't need a live PiP controller either — it's
+      // recreated on the next play.
+      pipManager.teardown()
     }
     hibernateWorkItem = work
     DispatchQueue.main.asyncAfter(deadline: .now() + Self.hibernateGraceSeconds, execute: work)
@@ -561,7 +640,13 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
     _ playerViewController: AVPlayerViewController,
     willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
+    // Keep playback rolling through AVKit's transition (it implicitly pauses
+    // the player at points during present/dismiss).
+    owner?.engine.beginTransitionPlaybackHold()
     owner?.fullscreenTransition(active: true)
+    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+      self?.owner?.engine.endTransitionPlaybackHold()
+    }
   }
 
   func playerViewController(
@@ -571,10 +656,13 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
     // Capture before AVKit's implicit pause during dismissal, and restore the
     // playback intent once the exit transition completes.
     let wasPlaying = playerViewController.player?.timeControlStatus != .paused
+    owner?.engine.beginTransitionPlaybackHold()
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
       guard let owner = self?.owner else { return }
       owner.fullscreenExitPlaybackIntent(wasPlaying: wasPlaying)
       owner.fullscreenTransition(active: false)
+      owner.engine.endTransitionPlaybackHold()
+      owner.applyPendingControlsUpdate()
     }
   }
 

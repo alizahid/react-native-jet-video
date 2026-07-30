@@ -38,6 +38,10 @@ namespace margelo::nitro::jetvideo {
       prototype.registerHybridSetter("audioMixMode", &HybridVideoViewSpec::setAudioMixMode);
       prototype.registerHybridGetter("coordinatorGroup", &HybridVideoViewSpec::getCoordinatorGroup);
       prototype.registerHybridSetter("coordinatorGroup", &HybridVideoViewSpec::setCoordinatorGroup);
+      prototype.registerHybridGetter("visibilityAxis", &HybridVideoViewSpec::getVisibilityAxis);
+      prototype.registerHybridSetter("visibilityAxis", &HybridVideoViewSpec::setVisibilityAxis);
+      prototype.registerHybridGetter("minVisibleFraction", &HybridVideoViewSpec::getMinVisibleFraction);
+      prototype.registerHybridSetter("minVisibleFraction", &HybridVideoViewSpec::setMinVisibleFraction);
       prototype.registerHybridGetter("onLoad", &HybridVideoViewSpec::getOnLoad);
       prototype.registerHybridSetter("onLoad", &HybridVideoViewSpec::setOnLoad);
       prototype.registerHybridGetter("onProgress", &HybridVideoViewSpec::getOnProgress);

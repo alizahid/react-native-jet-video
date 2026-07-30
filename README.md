@@ -46,7 +46,7 @@ Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or a
 
 How the election works (all native, ~10 Hz, works with nested/clipped scroll views):
 
-- A video is eligible once it's ≥50% visible; the most-visible eligible video plays.
+- A video is eligible once it's ≥20% visible; the most-visible eligible video plays (and stops once it drops below the threshold). Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
 - When two videos are comparably visible (e.g. both fully on screen), the one **closest to the center of the screen** plays — so scrolling in either direction hands playback to the video you're looking at.
 - Hysteresis + debouncing prevent flapping when two videos are near 50/50.
 - If the user pauses a video (ref or tap), the coordinator **never force-resumes it** — until it scrolls fully away, which resets it like feeds you know.
@@ -63,6 +63,14 @@ configureAutoplay({ minVisibleFraction: 0.6, hysteresis: 0.15 })
 ```
 
 Use `coordinatorGroup="stories"` to run independent elections for separate lists on one screen.
+
+### Swipeable cards: `visibilityAxis`
+
+If your feed cells swipe **horizontally** for actions (upvote, dismiss, reveal buttons), the default area-based visibility math would count the card as "less visible" mid-swipe and pause it. Set `visibilityAxis="vertical"` and only vertical coverage counts — the video keeps playing while its card is dragged sideways, and still pauses once it actually leaves the screen. (`'horizontal'` is the mirror for horizontal lists whose cells swipe vertically.)
+
+```tsx
+<VideoView source={item.uri} autoplay="whenVisible" visibilityAxis="vertical" />
+```
 
 ### Memory management is automatic
 
@@ -102,6 +110,8 @@ Expo: works in a [development build](https://docs.expo.dev/develop/development-b
 | `progressUpdateInterval` | `number` | `500` | ms between `onProgress`; `0` disables |
 | `audioMixMode` | `'mixWithOthers' \| 'duckOthers' \| 'doNotMix'` | `'mixWithOthers'` | See audio section |
 | `coordinatorGroup` | `string` | — | Separate election groups |
+| `visibilityAxis` | `'both' \| 'vertical' \| 'horizontal'` | `'both'` | Which axes count toward visibility |
+| `minVisibleFraction` | `number` | `0.2` | Visible fraction needed to autoplay (this view) |
 
 ### Events
 
@@ -135,10 +145,13 @@ Instead, playback is **uncontrolled** with a strict precedence: user intent > co
 The library never interrupts other apps' audio unless you ask it to:
 
 - **Muted playback** uses the `ambient` audio category with mixing — a muted feed never stops the user's music. (This is the classic video-library bug; it's handled.)
+- **Muted playback with PiP enabled** uses the `playback` category (PiP requires it) with mixing, and never explicitly activates the session — an inactive session can't interrupt anyone.
 - **Unmuted playback** escalates to the `playback` category with options from `audioMixMode`:
   - `'mixWithOthers'` (default): the user's music keeps playing alongside your video.
   - `'duckOthers'`: other audio ducks under your video.
   - `'doNotMix'`: other audio is interrupted (the traditional video-app behavior — opt-in).
+- **Session work never blocks the UI.** Audio-session calls are XPC round-trips that can stall for hundreds of milliseconds; the library runs them on a background queue and sequences playback starts behind them — mounting a screen full of videos costs the main thread nothing.
+- **Now Playing is never claimed.** The system fullscreen/inline controllers are configured not to register your app as the Now Playing app (which would forcibly interrupt other audio).
 
 If your app manages its own `AVAudioSession`, opt out entirely:
 
@@ -192,12 +205,14 @@ HLS streams are **not** disk-cached (AVPlayer buffers them in memory); caching a
 ## Fullscreen
 
 - `controls` gives you the system inline controls, including the system fullscreen button.
-- `enterFullscreen()` works even with `controls={false}` — it presents a system player fullscreen over your app.
+- `enterFullscreen()` works even with `controls={false}` — it presents a system player fullscreen (with playback controls) over your app, zooming out of the inline view and back into it on exit.
+- Playback rolls **through** the enter/exit animations — no freeze, no audio gap, no playhead jump at the boundary.
 - Fullscreen playback survives the originating cell being recycled or unmounted (relevant inside lists).
+- You don't need to flip `controls` on for fullscreen — the fullscreen presentation always shows the system controls. (If you do toggle `controls` around fullscreen changes, the surface swap is deferred until the transition fully settles, so it won't jank the animation.)
 
 ## Example app
 
-`example/` is an Expo dev-client app with screens for each feature — `BasicPlayback`, `RefMethods`, `Feed` (200-item FlashList stress test), `Fullscreen`, `PictureInPicture`, `Cache`:
+`example/` is an Expo dev-client app with screens for each feature — `BasicPlayback`, `RefMethods`, `Feed` (200-item FlashList stress test), `Stacked`, `SwipeActions` (visibilityAxis), `Fullscreen`, `PictureInPicture`, `Cache`:
 
 ```sh
 bun install

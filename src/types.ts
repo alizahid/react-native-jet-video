@@ -5,6 +5,7 @@ import type {
   PlaybackStatus,
   ProgressEvent,
   VideoErrorEvent,
+  VisibilityAxis,
 } from './specs/VideoView.nitro'
 
 export type {
@@ -13,6 +14,7 @@ export type {
   PlaybackStatus,
   ProgressEvent,
   VideoErrorEvent,
+  VisibilityAxis,
 }
 
 /**
@@ -82,6 +84,21 @@ export interface VideoViewProps {
    * independently. Defaults to a single global group.
    */
   coordinatorGroup?: string
+  /**
+   * Which axes count toward this view's visible fraction for
+   * visibility-based autoplay. `'both'` (default) uses the visible area.
+   * `'vertical'` only measures vertical coverage — horizontal movement
+   * (e.g. swiping a card sideways for actions) doesn't pause the video as
+   * long as any part of it remains on screen. `'horizontal'` is the mirror
+   * for horizontal lists.
+   */
+  visibilityAxis?: VisibilityAxis
+  /**
+   * Minimum visible fraction (0–1) this view needs before it can be elected
+   * to play with `autoplay="whenVisible"` — and below which it stops.
+   * Defaults to the global value (0.2, configurable via `configureAutoplay`).
+   */
+  minVisibleFraction?: number
   style?: StyleProp<ViewStyle>
   testID?: string
 

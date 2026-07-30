@@ -139,6 +139,16 @@ using namespace margelo::nitro::jetvideo::views;
     swiftPart.setCoordinatorGroup(newViewProps.coordinatorGroup.value);
     newViewProps.coordinatorGroup.isDirty = false;
   }
+  // visibilityAxis: enum
+  if (newViewProps.visibilityAxis.isDirty) {
+    swiftPart.setVisibilityAxis(static_cast<int>(newViewProps.visibilityAxis.value));
+    newViewProps.visibilityAxis.isDirty = false;
+  }
+  // minVisibleFraction: number
+  if (newViewProps.minVisibleFraction.isDirty) {
+    swiftPart.setMinVisibleFraction(newViewProps.minVisibleFraction.value);
+    newViewProps.minVisibleFraction.isDirty = false;
+  }
   // onLoad: optional
   if (newViewProps.onLoad.isDirty) {
     swiftPart.setOnLoad(newViewProps.onLoad.value);

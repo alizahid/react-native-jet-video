@@ -16,7 +16,10 @@ enum AutoplayOverride {
 /// container (FlashList, ScrollView, nested scrolls) with no JS wiring.
 /// Main-thread only.
 final class PlaybackCoordinator {
-  static var minVisibleFraction: Double = 0.5
+  /// Global eligibility threshold — a view must be at least this visible to
+  /// be elected (and stops playing below it). Overridable per view via the
+  /// `minVisibleFraction` prop.
+  static var minVisibleFraction: Double = 0.2
   static var hysteresis: Double = 0.10
   static let debounceTicks = 2
   /// How many times a visible errored video is rebuilt before giving up.
@@ -191,8 +194,8 @@ final class PlaybackCoordinator {
 
     for view in active {
       let id = ObjectIdentifier(view)
-      let (fraction, rect) = VisibilityTracker.visibleFraction(of: view.view)
-      let centerDistance = Self.centerDistance(of: rect, in: view.view.window)
+      let (fraction, rect) = VisibilityTracker.visibleFraction(of: view.view, axis: view.visibilityAxis)
+      let centerDistance = Self.centerDistance(of: rect, in: view.view.window, axis: view.visibilityAxis)
 
       if lastRects[id] != rect {
         lastRects[id] = rect
@@ -218,7 +221,7 @@ final class PlaybackCoordinator {
       // A visible errored video gets rebuilt (bounded retries): transient
       // failures like decoder-session pressure from a heavy feed must not
       // leave a black cell on screen.
-      if view.engine.status == .error, fraction >= Self.minVisibleFraction,
+      if view.engine.status == .error, fraction >= Self.threshold(for: view),
          retryCounts[id, default: 0] < Self.maxErrorRetries {
         retryCounts[id, default: 0] += 1
         view.engine.retry()
@@ -227,7 +230,7 @@ final class PlaybackCoordinator {
 
       // A user-played video that drops below the threshold loses its override:
       // audio must never continue for an offscreen video (outside PiP).
-      if view.autoplayOverride == .userPlaying, fraction < Self.minVisibleFraction {
+      if view.autoplayOverride == .userPlaying, fraction < Self.threshold(for: view) {
         view.autoplayOverride = .none
         pauseIfPlaying(view)
         if winner === view {
@@ -242,6 +245,26 @@ final class PlaybackCoordinator {
     guard rectsChanged || dirty else { return }
     dirty = false
 
+    runElection(infos: infos, active: active)
+
+    // Safety net: nothing but the winner may ever play in a coordinated
+    // group. Playback can start outside the election's control (state races,
+    // system behaviors) — e.g. AVPlayer preserves its rate across a source
+    // swap, so before this sweep a recycled playing cell would restart its
+    // NEW source at any visibility, and the election would never notice a
+    // playing non-winner.
+    for info in infos
+    where info.view !== winner
+      && !info.view.isFullscreen
+      && !info.view.isInPictureInPicture {
+      pauseIfPlaying(info.view)
+    }
+  }
+
+  private func runElection(
+    infos: [(view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)],
+    active: [HybridVideoView]
+  ) {
     // A video in PiP suspends elections for its whole group: nothing else in
     // the group may play alongside it.
     if active.contains(where: { $0.isInPictureInPicture }) {
@@ -262,7 +285,7 @@ final class PlaybackCoordinator {
     }
 
     let eligible = infos.filter { info in
-      info.fraction >= Self.minVisibleFraction
+      info.fraction >= Self.threshold(for: info.view)
         && info.view.autoplayOverride != .userPaused
         && info.view.engine.sourceUri != nil
         && info.view.engine.status != .error
@@ -341,6 +364,11 @@ final class PlaybackCoordinator {
         challengerId = nil
         challengerTicks = 0
         crown(best.view)
+      } else {
+        // Keep evaluating on the next tick even if nothing else changes — a
+        // challenge begun on the last rect change of a scroll (or a state
+        // invalidation) must still resolve in a now-static scene.
+        dirty = true
       }
     } else {
       challengerId = nil
@@ -364,16 +392,36 @@ final class PlaybackCoordinator {
     }
   }
 
+  /// Per-view eligibility threshold: the view's `minVisibleFraction` prop
+  /// when set (non-negative), else the global (configureAutoplay) value.
+  private static func threshold(for view: HybridVideoView) -> Double {
+    let fraction = view.minVisibleFraction
+    return fraction >= 0 ? min(1, fraction) : minVisibleFraction
+  }
+
   /// Distance from the video's centre to the screen centre, with each axis
   /// normalized by the window's size — so "one screen-height away" and "one
-  /// screen-width away" weigh the same in portrait or landscape.
-  private static func centerDistance(of rect: CGRect, in window: UIWindow?) -> Double {
+  /// screen-width away" weigh the same in portrait or landscape. A view with
+  /// a single-axis visibility formula measures distance along that axis only,
+  /// so displacement on the ignored axis can't cost it an election tie-break.
+  private static func centerDistance(
+    of rect: CGRect,
+    in window: UIWindow?,
+    axis: VisibilityAxis
+  ) -> Double {
     guard let window, !rect.isEmpty else { return .greatestFiniteMagnitude }
     let bounds = window.bounds
     guard bounds.width > 0, bounds.height > 0 else { return .greatestFiniteMagnitude }
     let dx = Double((rect.midX - bounds.midX) / bounds.width)
     let dy = Double((rect.midY - bounds.midY) / bounds.height)
-    return (dx * dx + dy * dy).squareRoot()
+    switch axis {
+    case .vertical:
+      return abs(dy)
+    case .horizontal:
+      return abs(dx)
+    case .both:
+      return (dx * dx + dy * dy).squareRoot()
+    }
   }
 
   private func pauseIfPlaying(_ view: HybridVideoView) {

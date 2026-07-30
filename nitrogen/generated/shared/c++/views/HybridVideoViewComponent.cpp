@@ -146,6 +146,26 @@ namespace margelo::nitro::jetvideo::views {
         throw std::runtime_error(std::string("VideoView.coordinatorGroup: ") + exc.what());
       }
     }()),
+    visibilityAxis([&]() -> CachedProp<VisibilityAxis> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("visibilityAxis", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.visibilityAxis;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<VisibilityAxis>::fromRawValue(*runtime, value, sourceProps.visibilityAxis);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("VideoView.visibilityAxis: ") + exc.what());
+      }
+    }()),
+    minVisibleFraction([&]() -> CachedProp<double> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("minVisibleFraction", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.minVisibleFraction;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.minVisibleFraction);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("VideoView.minVisibleFraction: ") + exc.what());
+      }
+    }()),
     onLoad([&]() -> CachedProp<std::optional<std::function<void(const LoadEvent& /* event */)>>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onLoad", nullptr, nullptr);
@@ -261,6 +281,8 @@ namespace margelo::nitro::jetvideo::views {
       case hashString("progressUpdateInterval"): return true;
       case hashString("audioMixMode"): return true;
       case hashString("coordinatorGroup"): return true;
+      case hashString("visibilityAxis"): return true;
+      case hashString("minVisibleFraction"): return true;
       case hashString("onLoad"): return true;
       case hashString("onProgress"): return true;
       case hashString("onEnd"): return true;

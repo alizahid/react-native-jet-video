@@ -51,6 +51,8 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
       progressUpdateInterval = 500,
       audioMixMode = 'mixWithOthers',
       coordinatorGroup,
+      visibilityAxis = 'both',
+      minVisibleFraction = -1,
       style,
       testID,
       onLoad,
@@ -136,6 +138,8 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         progressUpdateInterval={progressUpdateInterval}
         audioMixMode={audioMixMode}
         coordinatorGroup={coordinatorGroup}
+        visibilityAxis={visibilityAxis}
+        minVisibleFraction={minVisibleFraction}
         style={style}
         testID={testID}
         onLoad={onLoad ? callback(handleLoad) : undefined}

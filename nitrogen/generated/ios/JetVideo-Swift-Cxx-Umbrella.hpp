@@ -36,6 +36,8 @@ namespace margelo::nitro::jetvideo { enum class ResizeMode; }
 namespace margelo::nitro::jetvideo { struct VideoErrorEvent; }
 // Forward declaration of `VideoSource` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct VideoSource; }
+// Forward declaration of `VisibilityAxis` to properly resolve imports.
+namespace margelo::nitro::jetvideo { enum class VisibilityAxis; }
 
 // Include C++ defined types
 #include "AudioMixMode.hpp"
@@ -52,6 +54,7 @@ namespace margelo::nitro::jetvideo { struct VideoSource; }
 #include "ResizeMode.hpp"
 #include "VideoErrorEvent.hpp"
 #include "VideoSource.hpp"
+#include "VisibilityAxis.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <exception>

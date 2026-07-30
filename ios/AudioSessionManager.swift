@@ -5,50 +5,94 @@ import AVFoundation
 ///
 /// - Muted playback: `.ambient` + `.mixWithOthers` — background music keeps
 ///   playing under a muted feed (never touches the session otherwise).
+/// - Muted playback that must support PiP: `.playback` + `.mixWithOthers` —
+///   PiP requires the playback category, but mixing still never interrupts.
 /// - Unmuted playback / PiP: `.playback` with options derived from the view's
 ///   `audioMixMode` — `mixWithOthers` (default) keeps other audio running,
 ///   `duckOthers` lowers it, `doNotMix` interrupts it.
 /// - Escalate-only: the category is never downgraded mid-session.
+///
+/// Every AVAudioSession call is an XPC round-trip to mediaserverd that can
+/// block for hundreds of milliseconds (seconds under contention at app
+/// launch) — so the actual session calls run on a private serial queue,
+/// never the calling thread. Decision state lives on the main thread (all
+/// entry points are main-thread), which also lets a no-op request complete
+/// synchronously without paying the queue hop before playback starts.
 final class AudioSessionManager {
   static let shared = AudioSessionManager()
   static var isManagementEnabled = true
 
-  private var escalated = false
-  private var appliedCategory: AVAudioSession.Category?
-  private var appliedOptions: AVAudioSession.CategoryOptions?
+  private let queue = DispatchQueue(label: "app.jet.video.audio-session", qos: .userInitiated)
 
-  /// Called just before any playback starts, and when a playing video unmutes.
-  func willPlay(muted: Bool, mixMode: AudioMixMode) {
-    guard Self.isManagementEnabled else { return }
+  // Main-thread state describing what has been (or is queued to be) applied.
+  private var playbackCategoryApplied = false
+  private var activated = false
+  private var targetCategory: AVAudioSession.Category?
+  private var targetOptions: AVAudioSession.CategoryOptions?
+
+  /// Called just before any playback starts, and when a playing video
+  /// unmutes. `completion` fires (on main) once the session is configured —
+  /// start playback then, so the first audio render never races the category
+  /// change (which audibly pops mid-stream).
+  ///
+  /// Muted playback never explicitly activates the session — an inactive
+  /// session can never interrupt another app's audio, no matter the category.
+  /// Only audible playback (or starting PiP) activates.
+  func willPlay(
+    muted: Bool,
+    mixMode: AudioMixMode,
+    requiresPlaybackCategory: Bool,
+    completion: @escaping () -> Void
+  ) {
+    guard Self.isManagementEnabled else {
+      completion()
+      return
+    }
     if muted {
-      guard !escalated else { return }
-      apply(category: .ambient, options: [.mixWithOthers], activate: false)
+      if requiresPlaybackCategory {
+        setPlayback(options: [.mixWithOthers], activate: false, completion: completion)
+      } else if !playbackCategoryApplied {
+        apply(category: .ambient, options: [.mixWithOthers], activate: false, completion: completion)
+      } else {
+        completion()
+      }
     } else {
-      escalate(options: Self.options(for: mixMode))
+      setPlayback(options: Self.options(for: mixMode), activate: true, completion: completion)
     }
   }
 
-  /// PiP requires the `.playback` category. For muted videos, mix regardless of
-  /// the view's mode so starting PiP never interrupts other audio.
-  func willStartPictureInPicture(muted: Bool, mixMode: AudioMixMode) {
-    guard Self.isManagementEnabled else { return }
-    escalate(options: muted ? [.mixWithOthers] : Self.options(for: mixMode))
+  /// PiP requires the `.playback` category and an active session. For muted
+  /// videos, mix regardless of the view's mode so starting PiP never
+  /// interrupts other audio.
+  func willStartPictureInPicture(
+    muted: Bool,
+    mixMode: AudioMixMode,
+    completion: @escaping () -> Void
+  ) {
+    guard Self.isManagementEnabled else {
+      completion()
+      return
+    }
+    setPlayback(options: muted ? [.mixWithOthers] : Self.options(for: mixMode), activate: true, completion: completion)
   }
 
-  /// Category pre-arming for auto-PiP at view mount: `.playback` is required
-  /// for the system to auto-enter PiP on backgrounding, but mounting must
-  /// never interrupt other audio — always mix; playback applies the real mode.
-  func prepareForPictureInPicture() {
-    guard Self.isManagementEnabled else { return }
-    escalate(options: [.mixWithOthers])
-  }
-
-  private func escalate(options: AVAudioSession.CategoryOptions) {
-    guard !escalated || appliedOptions != options else { return }
-    // Activate only on the first escalation — the session stays active after
-    // that, and redundant setActive(true) calls audibly dip other apps' audio.
-    apply(category: .playback, options: options, activate: !escalated)
-    escalated = true
+  /// Escalates to the `.playback` category (never downgraded afterwards) and
+  /// activates at most once, only when audible playback or PiP demands it.
+  private func setPlayback(
+    options: AVAudioSession.CategoryOptions,
+    activate: Bool,
+    completion: @escaping () -> Void
+  ) {
+    let needsActivation = activate && !activated
+    guard !playbackCategoryApplied || targetOptions != options || needsActivation else {
+      completion()
+      return
+    }
+    playbackCategoryApplied = true
+    if needsActivation {
+      activated = true
+    }
+    apply(category: .playback, options: options, activate: needsActivation, completion: completion)
   }
 
   /// Applies the category only when it actually changes: every setCategory
@@ -57,16 +101,25 @@ final class AudioSessionManager {
   private func apply(
     category: AVAudioSession.Category,
     options: AVAudioSession.CategoryOptions,
-    activate: Bool
+    activate: Bool,
+    completion: @escaping () -> Void
   ) {
-    let session = AVAudioSession.sharedInstance()
-    if appliedCategory != category || appliedOptions != options {
-      try? session.setCategory(category, mode: .moviePlayback, options: options)
-      appliedCategory = category
-      appliedOptions = options
+    let changed = targetCategory != category || targetOptions != options
+    targetCategory = category
+    targetOptions = options
+    guard changed || activate else {
+      completion()
+      return
     }
-    if activate {
-      try? session.setActive(true)
+    queue.async {
+      let session = AVAudioSession.sharedInstance()
+      if changed {
+        try? session.setCategory(category, mode: .moviePlayback, options: options)
+      }
+      if activate {
+        try? session.setActive(true)
+      }
+      DispatchQueue.main.async(execute: completion)
     }
   }
 

@@ -285,6 +285,28 @@ open class HybridVideoViewSpec_cxx {
     }
   }
   
+  public final var visibilityAxis: Int32 {
+    @inline(__always)
+    get {
+      return self.__implementation.visibilityAxis.rawValue
+    }
+    @inline(__always)
+    set {
+      self.__implementation.visibilityAxis = margelo.nitro.jetvideo.VisibilityAxis(rawValue: newValue)!
+    }
+  }
+  
+  public final var minVisibleFraction: Double {
+    @inline(__always)
+    get {
+      return self.__implementation.minVisibleFraction
+    }
+    @inline(__always)
+    set {
+      self.__implementation.minVisibleFraction = newValue
+    }
+  }
+  
   public final var onLoad: bridge.std__optional_std__function_void_const_LoadEvent_____event______ {
     @inline(__always)
     get {
