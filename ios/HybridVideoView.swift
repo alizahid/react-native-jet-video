@@ -737,6 +737,9 @@ class HybridVideoView: HybridVideoViewSpec {
     // An invisible video doesn't need a live PiP controller either — it's
     // recreated on the next play.
     pipManager.teardown()
+    // A screen transition can push the pool past its cap (both screens'
+    // cells count as displayed mid-animation); settle back once idle.
+    PlayerPool.shared.settle()
   }
 
   /// Coordinator-driven item liveness for on-window views: invisible (or

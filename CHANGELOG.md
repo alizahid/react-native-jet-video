@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Player pool.** Native players now live in one app-wide pool (10 by default, `configurePlayerPool({ maxPlayers })`), keyed by the new `playerKey` prop (default: the source uri). Views showing the same video share one player, so opening a post from a feed continues the video from the same frame with no reload, and popping back hands it back just as seamlessly (the covered cell keeps rendering during the transition). Scrolled-away cells keep their player idle for instant resume; when the pool is full the least recently used idle player is released and its playhead remembered.
+- `getPlayerPoolStats()` reports live pool usage. The example app now uses React Navigation's native stack; its Feed screen pushes onto itself for pool testing.
 - Election: comparably visible videos are now ranked in reading order (topmost, or leftmost for horizontal lists) instead of by distance to the screen centre — the first video in a feed plays when the screen opens. Any partially visible video is loaded and prerolled immediately.
 
 - Memory/CPU: only visible videos hold a live player item. Mounted-but-offscreen cells (FlashList render-ahead, ScrollView content, feeds under a page sheet) release their whole player stack and show the poster; visible `whenVisible` videos beyond the playing one are capped at a handful. Posters decode at screen-width instead of screen-height pixels. The disk cache now uses one shared URL session (no per-video session, URLCache disabled), reads metadata lazily off the main thread, and throttles metadata writes and eviction scans.

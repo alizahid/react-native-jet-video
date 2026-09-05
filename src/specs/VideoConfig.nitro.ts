@@ -12,6 +12,13 @@ export interface PlayerPoolConfig {
   maxPlayers?: number
 }
 
+export interface PlayerPoolStats {
+  /** Native players currently alive in the pool. */
+  players: number
+  /** Of those, how many hold a loaded item (the rest idle with just a playhead). */
+  liveItems: number
+}
+
 export interface CacheConfig {
   /** Total disk budget for the video cache, in bytes. Default 1 GB. */
   maxSizeBytes?: number
@@ -20,6 +27,7 @@ export interface CacheConfig {
 export interface VideoConfig extends HybridObject<{ ios: 'swift' }> {
   configureAutoplay(config: AutoplayConfig): void
   configurePlayerPool(config: PlayerPoolConfig): void
+  getPlayerPoolStats(): Promise<PlayerPoolStats>
   setAudioSessionManagementEnabled(enabled: boolean): void
   configureCache(config: CacheConfig): void
   clearCache(): Promise<void>

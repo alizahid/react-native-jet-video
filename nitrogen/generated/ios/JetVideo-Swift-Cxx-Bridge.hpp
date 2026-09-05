@@ -20,6 +20,8 @@ namespace margelo::nitro::jetvideo { enum class PlaybackChangeReason; }
 namespace margelo::nitro::jetvideo { struct PlaybackStateEvent; }
 // Forward declaration of `PlaybackStatus` to properly resolve imports.
 namespace margelo::nitro::jetvideo { enum class PlaybackStatus; }
+// Forward declaration of `PlayerPoolStats` to properly resolve imports.
+namespace margelo::nitro::jetvideo { struct PlayerPoolStats; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct ProgressEvent; }
 // Forward declaration of `VideoErrorEvent` to properly resolve imports.
@@ -40,6 +42,7 @@ namespace JetVideo { class HybridVideoViewSpec_cxx; }
 #include "PlaybackChangeReason.hpp"
 #include "PlaybackStateEvent.hpp"
 #include "PlaybackStatus.hpp"
+#include "PlayerPoolStats.hpp"
 #include "ProgressEvent.hpp"
 #include "VideoErrorEvent.hpp"
 #include "VideoSource.hpp"
@@ -74,6 +77,62 @@ namespace margelo::nitro::jetvideo::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::shared_ptr<Promise<PlayerPoolStats>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<PlayerPoolStats>>`.
+   */
+  using std__shared_ptr_Promise_PlayerPoolStats__ = std::shared_ptr<Promise<PlayerPoolStats>>;
+  inline std::shared_ptr<Promise<PlayerPoolStats>> create_std__shared_ptr_Promise_PlayerPoolStats__() noexcept {
+    return Promise<PlayerPoolStats>::create();
+  }
+  inline PromiseHolder<PlayerPoolStats> wrap_std__shared_ptr_Promise_PlayerPoolStats__(std::shared_ptr<Promise<PlayerPoolStats>> promise) noexcept {
+    return PromiseHolder<PlayerPoolStats>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const PlayerPoolStats& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const PlayerPoolStats&)>`.
+   */
+  using Func_void_PlayerPoolStats = std::function<void(const PlayerPoolStats& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const PlayerPoolStats& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_PlayerPoolStats_Wrapper final {
+  public:
+    explicit Func_void_PlayerPoolStats_Wrapper(std::function<void(const PlayerPoolStats& /* result */)>&& func): _function(std::make_unique<std::function<void(const PlayerPoolStats& /* result */)>>(std::move(func))) {}
+    inline void call(PlayerPoolStats result) const noexcept {
+      _function->operator()(result);
+    }
+  private:
+    std::unique_ptr<std::function<void(const PlayerPoolStats& /* result */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_PlayerPoolStats create_Func_void_PlayerPoolStats(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_PlayerPoolStats_Wrapper wrap_Func_void_PlayerPoolStats(Func_void_PlayerPoolStats value) noexcept {
+    return Func_void_PlayerPoolStats_Wrapper(std::move(value));
+  }
+  
+  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
+  /**
+   * Specialized version of `std::function<void(const std::exception_ptr&)>`.
+   */
+  using Func_void_std__exception_ptr = std::function<void(const std::exception_ptr& /* error */)>;
+  /**
+   * Wrapper class for a `std::function<void(const std::exception_ptr& / * error * /)>`, this can be used from Swift.
+   */
+  class Func_void_std__exception_ptr_Wrapper final {
+  public:
+    explicit Func_void_std__exception_ptr_Wrapper(std::function<void(const std::exception_ptr& /* error */)>&& func): _function(std::make_unique<std::function<void(const std::exception_ptr& /* error */)>>(std::move(func))) {}
+    inline void call(std::exception_ptr error) const noexcept {
+      _function->operator()(error);
+    }
+  private:
+    std::unique_ptr<std::function<void(const std::exception_ptr& /* error */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_std__exception_ptr_Wrapper wrap_Func_void_std__exception_ptr(Func_void_std__exception_ptr value) noexcept {
+    return Func_void_std__exception_ptr_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<Promise<void>>
   /**
    * Specialized version of `std::shared_ptr<Promise<void>>`.
@@ -106,28 +165,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
   Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_Wrapper wrap_Func_void(Func_void value) noexcept {
     return Func_void_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
-  /**
-   * Specialized version of `std::function<void(const std::exception_ptr&)>`.
-   */
-  using Func_void_std__exception_ptr = std::function<void(const std::exception_ptr& /* error */)>;
-  /**
-   * Wrapper class for a `std::function<void(const std::exception_ptr& / * error * /)>`, this can be used from Swift.
-   */
-  class Func_void_std__exception_ptr_Wrapper final {
-  public:
-    explicit Func_void_std__exception_ptr_Wrapper(std::function<void(const std::exception_ptr& /* error */)>&& func): _function(std::make_unique<std::function<void(const std::exception_ptr& /* error */)>>(std::move(func))) {}
-    inline void call(std::exception_ptr error) const noexcept {
-      _function->operator()(error);
-    }
-  private:
-    std::unique_ptr<std::function<void(const std::exception_ptr& /* error */)>> _function;
-  } SWIFT_NONCOPYABLE;
-  Func_void_std__exception_ptr create_Func_void_std__exception_ptr(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_std__exception_ptr_Wrapper wrap_Func_void_std__exception_ptr(Func_void_std__exception_ptr value) noexcept {
-    return Func_void_std__exception_ptr_Wrapper(std::move(value));
   }
   
   // pragma MARK: std::shared_ptr<Promise<double>>
@@ -183,6 +220,15 @@ namespace margelo::nitro::jetvideo::bridge::swift {
   }
   inline Result_void_ create_Result_void_(const std::exception_ptr& error) noexcept {
     return Result<void>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::shared_ptr<Promise<PlayerPoolStats>>>
+  using Result_std__shared_ptr_Promise_PlayerPoolStats___ = Result<std::shared_ptr<Promise<PlayerPoolStats>>>;
+  inline Result_std__shared_ptr_Promise_PlayerPoolStats___ create_Result_std__shared_ptr_Promise_PlayerPoolStats___(const std::shared_ptr<Promise<PlayerPoolStats>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<PlayerPoolStats>>>::withValue(value);
+  }
+  inline Result_std__shared_ptr_Promise_PlayerPoolStats___ create_Result_std__shared_ptr_Promise_PlayerPoolStats___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<PlayerPoolStats>>>::withError(error);
   }
   
   // pragma MARK: Result<std::shared_ptr<Promise<void>>>

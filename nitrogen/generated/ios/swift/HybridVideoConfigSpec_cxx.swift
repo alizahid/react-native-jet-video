@@ -147,6 +147,25 @@ open class HybridVideoConfigSpec_cxx {
   }
   
   @inline(__always)
+  public final func getPlayerPoolStats() -> bridge.Result_std__shared_ptr_Promise_PlayerPoolStats___ {
+    do {
+      let __result = try self.__implementation.getPlayerPoolStats()
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_PlayerPoolStats__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_PlayerPoolStats__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_PlayerPoolStats__(__promise)
+        __result
+          .then({ __result in __promiseHolder.resolve(__result) })
+          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
+        return __promise
+      }()
+      return bridge.create_Result_std__shared_ptr_Promise_PlayerPoolStats___(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__shared_ptr_Promise_PlayerPoolStats___(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
   public final func setAudioSessionManagementEnabled(enabled: Bool) -> bridge.Result_void_ {
     do {
       try self.__implementation.setAudioSessionManagementEnabled(enabled: enabled)

@@ -6,7 +6,9 @@ export {
   configureCache,
   configurePlayerPool,
   getCacheSize,
+  getPlayerPoolStats,
   type PlayerPoolConfig,
+  type PlayerPoolStats,
   setAudioSessionManagementEnabled,
 } from './coordinator'
 export type {
@@ -20,5 +22,6 @@ export type {
   VideoSource,
   VideoViewProps,
   VideoViewRef,
+  VisibilityAxis,
 } from './types'
 export { VideoView } from './VideoView'

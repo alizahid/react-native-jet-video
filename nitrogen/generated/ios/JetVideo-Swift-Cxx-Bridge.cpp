@@ -15,11 +15,11 @@
 
 namespace margelo::nitro::jetvideo::bridge::swift {
 
-  // pragma MARK: std::function<void()>
-  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = JetVideo::Func_void::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
-      swiftClosure.call();
+  // pragma MARK: std::function<void(const PlayerPoolStats& /* result */)>
+  Func_void_PlayerPoolStats create_Func_void_PlayerPoolStats(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = JetVideo::Func_void_PlayerPoolStats::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const PlayerPoolStats& result) mutable -> void {
+      swiftClosure.call(result);
     };
   }
   
@@ -28,6 +28,14 @@ namespace margelo::nitro::jetvideo::bridge::swift {
     auto swiftClosure = JetVideo::Func_void_std__exception_ptr::fromUnsafe(swiftClosureWrapper);
     return [swiftClosure = std::move(swiftClosure)](const std::exception_ptr& error) mutable -> void {
       swiftClosure.call(error);
+    };
+  }
+  
+  // pragma MARK: std::function<void()>
+  Func_void create_Func_void(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = JetVideo::Func_void::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)]() mutable -> void {
+      swiftClosure.call();
     };
   }
   

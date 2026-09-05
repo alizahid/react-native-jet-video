@@ -19,6 +19,13 @@ final class PlayerPool {
   private var positions: [String: Double] = [:]
   private var positionOrder: [String] = []
 
+  var stats: PlayerPoolStats {
+    PlayerPoolStats(
+      players: Double(engines.count),
+      liveItems: Double(engines.values.filter { !$0.isHibernated && $0.sourceUri != nil }.count)
+    )
+  }
+
   func engine(for key: String) -> PlayerEngine? {
     engines[key]
   }
@@ -63,15 +70,26 @@ final class PlayerPool {
     }
     // Idle after a grace, unless re-leased: the feed cell under a popped
     // screen re-leases within a tick and expects the live item.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
       guard engine.owner == nil else { return }
       engine.pause(reason: .system)
       engine.hibernate()
+      settle()
     }
   }
 
   private func evictIfNeeded() {
-    while engines.count >= Self.maxPlayers, let victim = evictionCandidate() {
+    trim(to: Self.maxPlayers - 1)
+  }
+
+  /// Re-applies the cap once something went idle (a covered screen's cells
+  /// hibernating, a released engine settling).
+  func settle() {
+    trim(to: Self.maxPlayers)
+  }
+
+  private func trim(to count: Int) {
+    while engines.count > count, let victim = evictionCandidate() {
       destroy(victim)
     }
   }

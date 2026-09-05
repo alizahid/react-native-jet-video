@@ -1,5 +1,11 @@
-import { useState } from 'react'
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { NavigationContainer } from '@react-navigation/native'
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from '@react-navigation/native-stack'
+import type { ComponentType } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+
 import { BasicPlayback } from './screens/BasicPlayback'
 import { Cache } from './screens/Cache'
 import { Feed } from './screens/Feed'
@@ -24,30 +30,24 @@ const SCREENS = {
 
 type ScreenName = keyof typeof SCREENS
 
-function App() {
-  const [screen, setScreen] = useState<ScreenName | null>(null)
+export type RootStackParamList = {
+  Home: undefined
+} & {
+  [Name in ScreenName]: { depth?: number } | undefined
+}
 
-  if (screen) {
-    const Screen = SCREENS[screen]
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
-    return (
-      <SafeAreaView style={styles.container}>
-        <Pressable onPress={() => setScreen(null)} style={styles.back}>
-          <Text style={styles.backText}>‹ Back</Text>
-        </Pressable>
-        <Screen />
-      </SafeAreaView>
-    )
-  }
-
+function Home({
+  navigation,
+}: NativeStackScreenProps<RootStackParamList, 'Home'>) {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>react-native-jet-video</Text>
+    <View style={styles.container}>
       <View style={styles.menu}>
         {(Object.keys(SCREENS) as ScreenName[]).map((name) => (
           <Pressable
             key={name}
-            onPress={() => setScreen(name)}
+            onPress={() => navigation.push(name)}
             style={styles.item}
             testID={`screen-${name}`}
           >
@@ -55,7 +55,36 @@ function App() {
           </Pressable>
         ))}
       </View>
-    </SafeAreaView>
+    </View>
+  )
+}
+
+function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          contentStyle: styles.container,
+          headerStyle: { backgroundColor: '#000' },
+          headerTintColor: '#5e9eff',
+          headerTitleStyle: { color: '#fff' },
+        }}
+      >
+        <Stack.Screen
+          component={Home}
+          name="Home"
+          options={{ title: 'react-native-jet-video' }}
+        />
+        {(Object.keys(SCREENS) as ScreenName[]).map((name) => (
+          <Stack.Screen
+            // biome-ignore lint/suspicious/noExplicitAny: screens take differing props
+            component={SCREENS[name] as ComponentType<any>}
+            key={name}
+            name={name}
+          />
+        ))}
+      </Stack.Navigator>
+    </NavigationContainer>
   )
 }
 
@@ -63,12 +92,6 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#000',
     flex: 1,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
-    padding: 16,
   },
   menu: {
     gap: 1,
@@ -79,13 +102,6 @@ const styles = StyleSheet.create({
   },
   itemText: {
     color: '#fff',
-    fontSize: 16,
-  },
-  back: {
-    padding: 12,
-  },
-  backText: {
-    color: '#5e9eff',
     fontSize: 16,
   },
 })

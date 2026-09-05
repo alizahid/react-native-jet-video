@@ -15,6 +15,7 @@ public protocol HybridVideoConfigSpec_protocol: HybridObject {
   // Methods
   func configureAutoplay(config: AutoplayConfig) throws -> Void
   func configurePlayerPool(config: PlayerPoolConfig) throws -> Void
+  func getPlayerPoolStats() throws -> Promise<PlayerPoolStats>
   func setAudioSessionManagementEnabled(enabled: Bool) throws -> Void
   func configureCache(config: CacheConfig) throws -> Void
   func clearCache() throws -> Promise<Void>

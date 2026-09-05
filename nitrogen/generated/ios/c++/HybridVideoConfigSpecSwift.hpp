@@ -16,14 +16,17 @@ namespace JetVideo { class HybridVideoConfigSpec_cxx; }
 namespace margelo::nitro::jetvideo { struct AutoplayConfig; }
 // Forward declaration of `PlayerPoolConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct PlayerPoolConfig; }
+// Forward declaration of `PlayerPoolStats` to properly resolve imports.
+namespace margelo::nitro::jetvideo { struct PlayerPoolStats; }
 // Forward declaration of `CacheConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
 #include <optional>
 #include "PlayerPoolConfig.hpp"
-#include "CacheConfig.hpp"
+#include "PlayerPoolStats.hpp"
 #include <NitroModules/Promise.hpp>
+#include "CacheConfig.hpp"
 
 #include "JetVideo-Swift-Cxx-Umbrella.hpp"
 
@@ -86,6 +89,14 @@ namespace margelo::nitro::jetvideo {
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }
+    }
+    inline std::shared_ptr<Promise<PlayerPoolStats>> getPlayerPoolStats() override {
+      auto __result = _swiftPart.getPlayerPoolStats();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
     }
     inline void setAudioSessionManagementEnabled(bool enabled) override {
       auto __result = _swiftPart.setAudioSessionManagementEnabled(std::forward<decltype(enabled)>(enabled));

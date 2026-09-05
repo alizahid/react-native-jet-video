@@ -9,12 +9,7 @@ import {
   View,
 } from 'react-native'
 import { VideoView } from 'react-native-jet-video'
-
-const VIDEOS = [
-  'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4',
-  'https://media.w3.org/2010/05/sintel/trailer.mp4',
-  'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
-] as const
+import { VIDEOS } from '../videos'
 
 interface Item {
   id: number

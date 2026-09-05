@@ -3,6 +3,7 @@ import type {
   AutoplayConfig,
   CacheConfig,
   PlayerPoolConfig,
+  PlayerPoolStats,
   VideoConfig,
 } from './specs/VideoConfig.nitro'
 
@@ -32,6 +33,11 @@ export function configurePlayerPool(options: PlayerPoolConfig): void {
   nativeConfig().configurePlayerPool(options)
 }
 
+/** How many native players the pool holds right now, and how many have a loaded item. */
+export function getPlayerPoolStats(): Promise<PlayerPoolStats> {
+  return nativeConfig().getPlayerPoolStats()
+}
+
 /**
  * Disable the library's automatic AVAudioSession management if your app
  * configures the audio session itself.
@@ -58,4 +64,4 @@ export function getCacheSize(): Promise<number> {
   return nativeConfig().getCacheSizeBytes()
 }
 
-export type { AutoplayConfig, CacheConfig, PlayerPoolConfig }
+export type { AutoplayConfig, CacheConfig, PlayerPoolConfig, PlayerPoolStats }

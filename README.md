@@ -84,7 +84,12 @@ Every `VideoView` draws its native player from one app-wide pool (10 by default,
 ```tsx
 // Same video in two places? Give both the same key (default: the source uri).
 <VideoView source={post.video} playerKey={post.id} autoplay="whenVisible" />
+
+configurePlayerPool({ maxPlayers: 5 }) // default 10
+const { players, liveItems } = await getPlayerPoolStats() // for your own dashboards
 ```
+
+The example app's Feed screen pushes onto itself without limit and shows the pool readout in its header — ten stacked feeds of 200 videos each hold ten players, three or four of them live.
 
 ### Memory management is automatic
 

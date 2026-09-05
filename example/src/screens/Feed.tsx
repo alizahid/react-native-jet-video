@@ -1,17 +1,15 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { FlashList } from '@shopify/flash-list'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import {
+  getPlayerPoolStats,
   type PlaybackStatus,
   VideoView,
   type VideoViewRef,
 } from 'react-native-jet-video'
-
-const VIDEOS = [
-  'https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4',
-  'https://media.w3.org/2010/05/sintel/trailer.mp4',
-  'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8',
-] as const
+import type { RootStackParamList } from '../App'
+import { VIDEOS } from '../videos'
 
 interface FeedItem {
   id: number
@@ -23,7 +21,7 @@ const ITEMS: FeedItem[] = Array.from({ length: 200 }, (_, index) => ({
   uri: VIDEOS[index % VIDEOS.length] as string,
 }))
 
-function FeedCell({ item }: { item: FeedItem }) {
+function FeedCell({ item, depth }: { item: FeedItem; depth: number }) {
   const ref = useRef<VideoViewRef>(null)
   const [status, setStatus] = useState<PlaybackStatus>('idle')
   const [reason, setReason] = useState('')
@@ -43,6 +41,9 @@ function FeedCell({ item }: { item: FeedItem }) {
         <VideoView
           ref={ref}
           source={item.uri}
+          // Distinct players per screen: the feed cycles three URIs, so
+          // without this every pushed feed would share the same three.
+          playerKey={`${depth}-${item.id}`}
           autoplay="whenVisible"
           muted
           loop
@@ -72,17 +73,55 @@ function FeedCell({ item }: { item: FeedItem }) {
   )
 }
 
-export function Feed() {
+/**
+ * Pushes onto itself without limit, so a deep stack of feeds (every one
+ * mounted, none visible) can be checked against the player pool: the pool
+ * readout in the header must stay bounded no matter the depth.
+ */
+export function Feed({
+  navigation,
+  route,
+}: Partial<NativeStackScreenProps<RootStackParamList, 'Feed'>>) {
+  const depth = route?.params?.depth ?? 1
+  const [stats, setStats] = useState('')
+
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      const pool = await getPlayerPoolStats()
+      setStats(`pool ${pool.players} · live ${pool.liveItems}`)
+    }, 500)
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    navigation?.setOptions({
+      title: `Feed ${depth} · ${stats}`,
+      headerRight: () => (
+        <Pressable
+          onPress={() => navigation.push('Feed', { depth: depth + 1 })}
+          testID="push-feed"
+        >
+          <Text style={styles.push}>Push ›</Text>
+        </Pressable>
+      ),
+    })
+  }, [navigation, depth, stats])
+
   return (
     <FlashList
       data={ITEMS}
       keyExtractor={(item) => String(item.id)}
-      renderItem={({ item }) => <FeedCell item={item} />}
+      renderItem={({ item }) => <FeedCell depth={depth} item={item} />}
     />
   )
 }
 
 const styles = StyleSheet.create({
+  push: {
+    color: '#5e9eff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   cell: {
     marginBottom: 24,
   },

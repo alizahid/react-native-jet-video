@@ -21,6 +21,14 @@ class HybridVideoConfig: HybridVideoConfigSpec {
     }
   }
 
+  func getPlayerPoolStats() throws -> Promise<PlayerPoolStats> {
+    let promise = Promise<PlayerPoolStats>()
+    DispatchQueue.main.async {
+      promise.resolve(withResult: PlayerPool.shared.stats)
+    }
+    return promise
+  }
+
   func setAudioSessionManagementEnabled(enabled: Bool) throws {
     DispatchQueue.main.async {
       AudioSessionManager.isManagementEnabled = enabled
