@@ -31,9 +31,6 @@ final class PlaybackCoordinator {
   /// Covers transient failures (decoder pressure, flaky network); reset on
   /// source change.
   static let maxErrorRetries = 2
-  /// How much closer to the screen centre (normalized per-axis) a challenger
-  /// must be to dethrone an incumbent of comparable visibility.
-  static let centerMargin: Double = 0.05
   /// Visible `whenVisible` videos that keep a live item, winner included.
   /// The rest show their poster until they rank high enough. Well under
   /// the platform's concurrent decoder limit.
@@ -43,7 +40,7 @@ final class PlaybackCoordinator {
   /// is released, or wanted before it's rebuilt — so a fling through a list
   /// doesn't build an item for every cell that flashes past.
   static let hibernateTicks = 3
-  static let wakeTicks = 2
+  static let wakeTicks = 1
 
   private static var groups: [String: PlaybackCoordinator] = [:]
 
@@ -70,8 +67,17 @@ final class PlaybackCoordinator {
     let view: HybridVideoView
     let fraction: Double
     let rect: CGRect
-    let centerDistance: Double
     var coordinated: Bool { view.autoplayMode == .whenvisible }
+
+    /// Reading order: topmost first, then leftmost — swapped for horizontal
+    /// lists. Among comparably visible videos this decides who plays (the
+    /// first one, like every major feed) and who stays warm.
+    func precedes(_ other: Info) -> Bool {
+      let horizontal = view.visibilityAxis == .horizontal
+      let (a1, a2) = horizontal ? (rect.minX, rect.minY) : (rect.minY, rect.minX)
+      let (b1, b2) = horizontal ? (other.rect.minX, other.rect.minY) : (other.rect.minY, other.rect.minX)
+      return a1 != b1 ? a1 < b1 : a2 < b2
+    }
   }
 
   private let members = NSHashTable<HybridVideoView>.weakObjects()
@@ -231,7 +237,7 @@ final class PlaybackCoordinator {
         axis: view.visibilityAxis,
         ignorePresentation: ignorePresentation
       )
-      let centerDistance = Self.centerDistance(of: rect, in: view.view.window, axis: view.visibilityAxis)
+      view.lastVisibleFraction = fraction
 
       if track.rect != rect {
         track.rect = rect
@@ -255,10 +261,10 @@ final class PlaybackCoordinator {
         // A visible errored video gets rebuilt (bounded retries): transient
         // failures like decoder-session pressure from a heavy feed must not
         // leave a black cell on screen.
-        if view.engine.status == .error, fraction >= Self.threshold(for: view),
+        if view.engine?.status == .error, fraction >= Self.threshold(for: view),
            track.retries < Self.maxErrorRetries {
           track.retries += 1
-          view.engine.retry()
+          view.engine?.retry()
           dirty = true
         }
 
@@ -276,7 +282,7 @@ final class PlaybackCoordinator {
       }
 
       tracking[id] = track
-      infos.append(Info(view: view, fraction: fraction, rect: rect, centerDistance: centerDistance))
+      infos.append(Info(view: view, fraction: fraction, rect: rect))
     }
 
     if rectsChanged || dirty {
@@ -312,7 +318,7 @@ final class PlaybackCoordinator {
     let ranked = infos
       .filter { $0.coordinated && $0.view !== winner && $0.fraction > 0.001 }
       .sorted { a, b in
-        a.fraction != b.fraction ? a.fraction > b.fraction : a.centerDistance < b.centerDistance
+        a.fraction != b.fraction ? a.fraction > b.fraction : a.precedes(b)
       }
     var wantedIds = Set<ObjectIdentifier>()
     for info in ranked where budget > 0 {
@@ -381,8 +387,8 @@ final class PlaybackCoordinator {
       info.coordinated
         && (info.view.isFullscreen || info.fraction >= Self.threshold(for: info.view))
         && info.view.autoplayOverride != .userPaused
-        && info.view.engine.sourceUri != nil
-        && info.view.engine.status != .error
+        && info.view.source != nil
+        && info.view.engine?.status != .error
     }
 
     guard !eligible.isEmpty else {
@@ -396,14 +402,11 @@ final class PlaybackCoordinator {
     }
 
     // Ranking: a decisively more-visible video wins; when visibility is
-    // comparable (within hysteresis), the video closest to the screen centre
-    // wins. Final ties break topmost, then leftmost.
+    // comparable (within hysteresis), the first in reading order wins.
     func outranks(_ a: Info, _ b: Info) -> Bool {
       if a.fraction > b.fraction + Self.hysteresis { return true }
       if b.fraction > a.fraction + Self.hysteresis { return false }
-      if a.centerDistance != b.centerDistance { return a.centerDistance < b.centerDistance }
-      if a.rect.minY != b.rect.minY { return a.rect.minY < b.rect.minY }
-      return a.rect.minX < b.rect.minX
+      return a.precedes(b)
     }
 
     var best = eligible[0]
@@ -430,20 +433,11 @@ final class PlaybackCoordinator {
       return
     }
 
-    // Dethroning needs a decisive edge, sustained for consecutive ticks:
-    // either clearly more visible (hysteresis), or — at comparable
-    // visibility — clearly closer to the screen centre (centerMargin).
-    // Prevents flapping when two videos trade places during scroll.
-    let decisive: Bool
-    if best.fraction > incumbent.fraction + Self.hysteresis {
-      decisive = true
-    } else if incumbent.fraction > best.fraction + Self.hysteresis {
-      decisive = false
-    } else {
-      decisive = best.centerDistance + Self.centerMargin < incumbent.centerDistance
-    }
-
-    if decisive {
+    // Dethroning must be sustained for consecutive ticks so two videos
+    // trading places mid-scroll don't flap. (`best` already outranks the
+    // incumbent: clearly more visible, or comparably visible and earlier in
+    // reading order.)
+    do {
       let id = ObjectIdentifier(best.view)
       if challengerId == id {
         challengerTicks += 1
@@ -461,10 +455,6 @@ final class PlaybackCoordinator {
         // invalidation) must still resolve in a now-static scene.
         dirty = true
       }
-    } else {
-      challengerId = nil
-      challengerTicks = 0
-      crown(incumbent.view)
     }
   }
 
@@ -475,11 +465,11 @@ final class PlaybackCoordinator {
       }
       winner = view
     }
-    switch view.engine.status {
+    switch view.engine?.status {
     case .playing, .buffering, .error:
       break
     default:
-      view.engine.play(reason: .coordinator)
+      view.coordinatorPlay()
     }
   }
 
@@ -490,38 +480,13 @@ final class PlaybackCoordinator {
     return fraction >= 0 ? min(1, fraction) : minVisibleFraction
   }
 
-  /// Distance from the video's centre to the screen centre, with each axis
-  /// normalized by the window's size — so "one screen-height away" and "one
-  /// screen-width away" weigh the same in portrait or landscape. A view with
-  /// a single-axis visibility formula measures distance along that axis only,
-  /// so displacement on the ignored axis can't cost it an election tie-break.
-  private static func centerDistance(
-    of rect: CGRect,
-    in window: UIWindow?,
-    axis: VisibilityAxis
-  ) -> Double {
-    guard let window, !rect.isEmpty else { return .greatestFiniteMagnitude }
-    let bounds = window.bounds
-    guard bounds.width > 0, bounds.height > 0 else { return .greatestFiniteMagnitude }
-    let dx = Double((rect.midX - bounds.midX) / bounds.width)
-    let dy = Double((rect.midY - bounds.midY) / bounds.height)
-    switch axis {
-    case .vertical:
-      return abs(dy)
-    case .horizontal:
-      return abs(dx)
-    case .both:
-      return (dx * dx + dy * dy).squareRoot()
-    }
-  }
-
   private func isPlaying(_ view: HybridVideoView) -> Bool {
-    view.engine.status == .playing || view.engine.status == .buffering
+    view.isPlaying
   }
 
   private func pauseIfPlaying(_ view: HybridVideoView) {
-    if isPlaying(view) {
-      view.engine.pause(reason: .coordinator)
+    if view.isPlaying {
+      view.engine?.pause(reason: .coordinator)
     }
   }
 }

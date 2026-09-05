@@ -18,6 +18,7 @@ public protocol HybridVideoViewSpec_protocol: HybridObject, HybridView {
   var resizeMode: ResizeMode { get set }
   var controls: Bool { get set }
   var posterUri: String? { get set }
+  var playerKey: String? { get set }
   var allowsPictureInPicture: Bool { get set }
   var progressUpdateInterval: Double { get set }
   var audioMixMode: AudioMixMode { get set }

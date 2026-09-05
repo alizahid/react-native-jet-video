@@ -14,11 +14,14 @@ namespace JetVideo { class HybridVideoConfigSpec_cxx; }
 
 // Forward declaration of `AutoplayConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct AutoplayConfig; }
+// Forward declaration of `PlayerPoolConfig` to properly resolve imports.
+namespace margelo::nitro::jetvideo { struct PlayerPoolConfig; }
 // Forward declaration of `CacheConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
 #include <optional>
+#include "PlayerPoolConfig.hpp"
 #include "CacheConfig.hpp"
 #include <NitroModules/Promise.hpp>
 
@@ -74,6 +77,12 @@ namespace margelo::nitro::jetvideo {
     // Methods
     inline void configureAutoplay(const AutoplayConfig& config) override {
       auto __result = _swiftPart.configureAutoplay(std::forward<decltype(config)>(config));
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void configurePlayerPool(const PlayerPoolConfig& config) override {
+      auto __result = _swiftPart.configurePlayerPool(std::forward<decltype(config)>(config));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

@@ -12,6 +12,7 @@
     "resizeMode": true,
     "controls": true,
     "posterUri": true,
+    "playerKey": true,
     "allowsPictureInPicture": true,
     "progressUpdateInterval": true,
     "audioMixMode": true,

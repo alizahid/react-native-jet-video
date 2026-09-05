@@ -6,7 +6,13 @@ import UIKit
 class HybridVideoView: HybridVideoViewSpec {
   private let surface = PlayerLayerView()
   private let posterView = PosterView(frame: .zero)
-  private(set) var engine = PlayerEngine()
+  /// The pooled engine this view controls. Leased lazily — when the video
+  /// becomes visible, plays, or is otherwise needed — and handed to whichever
+  /// view shows the same `playerKey` next.
+  private(set) var engine: PlayerEngine?
+  /// An engine another view now controls whose player this view keeps
+  /// rendering, so the frame under a pushed/popped screen never blanks.
+  private var mirroredEngine: PlayerEngine?
   private var readyForDisplayObservation: NSKeyValueObservation?
   private var controlsReadyObservation: NSKeyValueObservation?
   private var mutedObservation: NSKeyValueObservation?
@@ -25,6 +31,9 @@ class HybridVideoView: HybridVideoViewSpec {
   var autoplayOverride: AutoplayOverride = .none
   var isInPictureInPicture = false
   var isFullscreen = false
+  /// Last visible fraction measured by the coordinator (0 off-window).
+  var lastVisibleFraction: Double = 0
+  var isDisplayed: Bool { surface.window != nil && lastVisibleFraction > 0.001 }
   private var coordinator: PlaybackCoordinator?
   private var hibernateWorkItem: DispatchWorkItem?
   // Playback was interrupted by the window detach itself (screen covered),
@@ -39,8 +48,16 @@ class HybridVideoView: HybridVideoViewSpec {
 
   var view: UIView { surface }
 
+  /// Identity of this view's player in the pool.
+  private var resolvedKey: String? { playerKey ?? source?.uri }
+
   deinit {
     hibernateWorkItem?.cancel()
+    if let engine {
+      engine.delegate = nil
+      PlayerPool.shared.release(engine, from: self)
+    }
+    mirroredEngine?.mirrorCount -= 1
     // The parent VC's containment retains the embedded controller (and via
     // controller.player, the whole player stack) past this view's dealloc —
     // detach it explicitly. UIKit work must run on main; deinit may not be.
@@ -56,10 +73,6 @@ class HybridVideoView: HybridVideoViewSpec {
 
   override init() {
     super.init()
-    engine.delegate = self
-    surface.player = engine.player
-    attachEngineHooks()
-    observeEnginePlayer()
 
     posterView.isHidden = true
     posterView.translatesAutoresizingMaskIntoConstraints = false
@@ -87,29 +100,31 @@ class HybridVideoView: HybridVideoViewSpec {
   // MARK: - Props
 
   var source: VideoSource? = nil {
-    didSet {
-      let changed = source?.uri != engine.sourceUri
-      if changed, isFullscreen {
-        // This cell is being recycled while its engine is presented fullscreen.
-        // Orphan the fullscreen engine (the presenter holds it strongly) and
-        // continue with a fresh one so the new cell content is independent.
-        detachEngineForFullscreenOrphan()
-      }
-      engine.setSource(source)
-      if changed {
-        posterView.isHidden = posterUri == nil
-        autoplayOverride = .none
-        resumePlaybackOnAttach = false
-        coordinator?.noteSourceChanged(self)
-      }
-      updateCoordinatorRegistration()
-      applyAutoplay()
-      // A source swap while covered (data refresh behind a pushed screen)
-      // attaches a live item — release it again once the grace passes.
-      if surface.window == nil, !isInPictureInPicture, !isFullscreen {
-        scheduleHibernate()
-      }
+    didSet { handleIdentityChange(oldKey: playerKey ?? oldValue?.uri) }
+  }
+
+  /// Explicit player identity (defaults to the source uri). Views sharing a
+  /// key share one player — the feed cell and the post screen it opens
+  /// continue each other seamlessly.
+  var playerKey: String? = nil {
+    didSet { handleIdentityChange(oldKey: oldValue ?? source?.uri) }
+  }
+
+  private func handleIdentityChange(oldKey: String?) {
+    if resolvedKey != oldKey {
+      // Recycled to another video: the old engine stays pooled (playhead
+      // intact) for whoever shows that video next.
+      releaseEngine()
+      dropMirror()
+      posterView.isHidden = posterUri == nil
+      autoplayOverride = .none
+      resumePlaybackOnAttach = false
+      coordinator?.noteSourceChanged(self)
+    } else if let source {
+      engine?.setSource(source)
     }
+    updateCoordinatorRegistration()
+    applyAutoplay()
   }
 
   var autoplayMode: AutoplayMode = .off {
@@ -126,23 +141,23 @@ class HybridVideoView: HybridVideoViewSpec {
       // activating the session while unmuted samples are already rendering
       // reconfigures the audio graph mid-stream and audibly pops. The config
       // runs off-main; unmute once it lands (unless the user flipped back).
-      if !muted, engine.status == .playing || engine.status == .buffering {
+      if !muted, isPlaying {
         AudioSessionManager.shared.prepare(muted: false, mixMode: audioMixMode, activate: true) { [weak self] in
           guard let self, !self.muted else { return }
-          engine.isMuted = false
+          engine?.isMuted = false
         }
       } else {
-        engine.isMuted = muted
+        engine?.isMuted = muted
       }
     }
   }
 
   var loop: Bool = false {
-    didSet { engine.loop = loop }
+    didSet { engine?.loop = loop }
   }
 
   var volume: Double = 1 {
-    didSet { engine.volume = volume }
+    didSet { engine?.volume = volume }
   }
 
   var resizeMode: ResizeMode = .cover {
@@ -176,7 +191,7 @@ class HybridVideoView: HybridVideoViewSpec {
       embeddedController?.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
       if !allowsPictureInPicture {
         pipManager.teardown()
-      } else if engine.status == .playing || engine.status == .buffering {
+      } else if isPlaying {
         // Enabled mid-playback: set up now so auto-PiP works without
         // waiting for the next play.
         updatePiPSetup()
@@ -185,7 +200,7 @@ class HybridVideoView: HybridVideoViewSpec {
   }
 
   var progressUpdateInterval: Double = 500 {
-    didSet { engine.progressIntervalMs = progressUpdateInterval }
+    didSet { engine?.progressIntervalMs = progressUpdateInterval }
   }
 
   var audioMixMode: AudioMixMode = .mixwithothers
@@ -227,20 +242,24 @@ class HybridVideoView: HybridVideoViewSpec {
   func play() throws {
     DispatchQueue.main.async { [self] in
       coordinator?.noteUserPlay(self)
-      engine.play(reason: .user)
+      ensureEngine(force: true)?.play(reason: .user)
     }
   }
 
   func pause() throws {
     DispatchQueue.main.async { [self] in
       coordinator?.noteUserPause(self)
-      engine.pause(reason: .user)
+      engine?.pause(reason: .user)
     }
   }
 
   func seek(seconds: Double) throws -> Promise<Void> {
     let promise = Promise<Void>()
     DispatchQueue.main.async { [self] in
+      guard let engine = ensureEngine(force: true) else {
+        promise.resolve(withResult: ())
+        return
+      }
       engine.seek(to: seconds) {
         promise.resolve(withResult: ())
       }
@@ -249,7 +268,10 @@ class HybridVideoView: HybridVideoViewSpec {
   }
 
   func getCurrentTime() throws -> Double {
-    engine.currentTime
+    if let engine {
+      return engine.currentTime
+    }
+    return resolvedKey.map { PlayerPool.shared.rememberedPosition(for: $0) } ?? 0
   }
 
   func enterFullscreen() throws -> Promise<Void> {
@@ -259,7 +281,11 @@ class HybridVideoView: HybridVideoViewSpec {
         promise.resolve(withResult: ())
         return
       }
-      FullscreenPresenter.shared.enter(for: self) { error in
+      guard let engine = ensureEngine(force: true) else {
+        promise.reject(withError: VideoViewError.noSource)
+        return
+      }
+      FullscreenPresenter.shared.enter(for: self, engine: engine) { error in
         if let error {
           promise.reject(withError: error)
         } else {
@@ -314,7 +340,7 @@ class HybridVideoView: HybridVideoViewSpec {
     // didMoveToWindow, so pause and release from here — audio must never
     // continue for an invisible video.
     if !active, surface.window == nil, !isInPictureInPicture {
-      engine.pause(reason: .system)
+      engine?.pause(reason: .system)
       scheduleHibernate()
     }
   }
@@ -326,7 +352,7 @@ class HybridVideoView: HybridVideoViewSpec {
   /// immediately force-resume it.
   func fullscreenExitPlaybackIntent(wasPlaying: Bool) {
     if wasPlaying, surface.window != nil {
-      engine.play(reason: .system)
+      engine?.play(reason: .system)
     } else if !wasPlaying, let coordinator {
       coordinator.noteUserPause(self)
     }
@@ -335,6 +361,10 @@ class HybridVideoView: HybridVideoViewSpec {
   func startPictureInPicture() throws -> Promise<Void> {
     let promise = Promise<Void>()
     DispatchQueue.main.async { [self] in
+      guard ensureEngine(force: true) != nil else {
+        promise.reject(withError: VideoViewError.noSource)
+        return
+      }
       AudioSessionManager.shared.prepare(muted: muted, mixMode: audioMixMode, activate: true) { [weak self] in
         guard let self else { return }
         updatePiPSetup()
@@ -373,7 +403,7 @@ class HybridVideoView: HybridVideoViewSpec {
     // PiP ended while the owning screen is covered: nothing re-triggers
     // didMoveToWindow, so release the item from here.
     if !active, surface.window == nil, !isFullscreen {
-      engine.pause(reason: .system)
+      engine?.pause(reason: .system)
       scheduleHibernate()
     }
   }
@@ -389,9 +419,45 @@ class HybridVideoView: HybridVideoViewSpec {
     pipManager.setup(playerLayer: surface.playerLayer)
   }
 
-  // MARK: - Engine management
+  // MARK: - Engine leasing
 
-  private func attachEngineHooks() {
+  var isPlaying: Bool {
+    engine?.status == .playing || engine?.status == .buffering
+  }
+
+  /// The engine for this view's key, leased from the pool on first need.
+  /// Without `force` (coordinator-driven), a view mirroring an engine that
+  /// another on-window view controls keeps mirroring instead of stealing it
+  /// back — that's the feed cell under a pushed post screen; stealing would
+  /// ping-pong the player between the two every tick.
+  @discardableResult
+  func ensureEngine(force: Bool) -> PlayerEngine? {
+    if let engine {
+      return engine
+    }
+    guard let source, let key = resolvedKey else { return nil }
+    if !force, let mirrored = mirroredEngine, let owner = mirrored.owner, owner.view.window != nil {
+      return nil
+    }
+    guard let leased = PlayerPool.shared.lease(key: key, source: source, for: self) else {
+      // Pinned to another view by fullscreen/PiP: render it, don't control it.
+      if let pinned = PlayerPool.shared.engine(for: key) {
+        mirror(pinned)
+      }
+      return nil
+    }
+    adopt(leased)
+    return leased
+  }
+
+  private func adopt(_ engine: PlayerEngine) {
+    self.engine = engine
+    dropMirror()
+    engine.delegate = self
+    engine.isMuted = muted
+    engine.loop = loop
+    engine.volume = volume
+    engine.progressIntervalMs = progressUpdateInterval
     engine.willPlay = { [weak self] proceed in
       guard let self else {
         proceed()
@@ -412,9 +478,6 @@ class HybridVideoView: HybridVideoViewSpec {
       guard let self else { return false }
       return isFullscreen || hasEmbeddedControls
     }
-  }
-
-  private func observeEnginePlayer() {
     mutedObservation = engine.player.observe(\.isMuted) { [weak self] player, _ in
       DispatchQueue.main.async {
         guard let self else { return }
@@ -423,30 +486,86 @@ class HybridVideoView: HybridVideoViewSpec {
         }
       }
     }
+    if !FullscreenPresenter.shared.isPresenting(engine: engine) {
+      resumeInlineRendering()
+    }
+    engine.replayState(to: self)
   }
 
-  /// Hands the current engine over to the fullscreen presenter (which holds it
-  /// strongly) and installs a fresh engine for this view's next source.
-  private func detachEngineForFullscreenOrphan() {
-    isFullscreen = false
+  /// Gives the engine back to the pool (it idles there, playhead intact).
+  private func releaseEngine() {
+    guard let engine else { return }
     engine.delegate = nil
-    engine = PlayerEngine()
-    engine.delegate = self
-    engine.isMuted = muted
-    engine.loop = loop
-    engine.volume = volume
-    engine.progressIntervalMs = progressUpdateInterval
-    attachEngineHooks()
-    observeEnginePlayer()
-    if embeddedController != nil {
-      embeddedController?.player = engine.player
-    } else {
-      surface.player = engine.player
+    engine.willPlay = nil
+    engine.isUserControlled = nil
+    mutedObservation = nil
+    if FullscreenPresenter.shared.isPresenting(engine: engine) {
+      // Recycled mid-fullscreen: the presenter keeps the engine; this view
+      // carries on independently.
+      isFullscreen = false
+      applyPendingControlsUpdate()
     }
-    // A controls change deferred during the (now-orphaned) fullscreen
-    // presentation applies to the fresh engine's surface — the orphan exit
-    // path never notifies this view.
-    applyPendingControlsUpdate()
+    self.engine = nil
+    surface.player = nil
+    embeddedController?.player = nil
+    pipManager.teardown()
+    PlayerPool.shared.release(engine, from: self)
+  }
+
+  /// Pool callback: another view now controls this engine. Keep rendering
+  /// its player (mirror) so nothing blanks mid-transition; control returns
+  /// via `ensureEngine` when this view is next wanted and the taker is gone.
+  func engineWasTaken(_ engine: PlayerEngine) {
+    guard self.engine === engine else { return }
+    engine.delegate = nil
+    mutedObservation = nil
+    self.engine = nil
+    pipManager.teardown()
+    mirror(engine)
+    coordinator?.noteStateInvalidated()
+  }
+
+  /// Pool callback: the engine was destroyed to make room. Back to the
+  /// poster; a fresh engine is leased when this view is next wanted.
+  func engineEvicted(_ engine: PlayerEngine) {
+    guard self.engine === engine else { return }
+    engine.delegate = nil
+    mutedObservation = nil
+    self.engine = nil
+    surface.player = nil
+    embeddedController?.player = nil
+    pipManager.teardown()
+    if posterUri != nil {
+      posterView.isHidden = false
+    }
+    coordinator?.noteStateInvalidated()
+  }
+
+  private func mirror(_ engine: PlayerEngine) {
+    guard mirroredEngine !== engine else { return }
+    dropMirror()
+    mirroredEngine = engine
+    engine.mirrorCount += 1
+    if !FullscreenPresenter.shared.isPresenting(engine: engine) {
+      if let embeddedController {
+        embeddedController.player = engine.player
+      } else {
+        surface.player = engine.player
+      }
+    }
+  }
+
+  private func dropMirror() {
+    guard let mirroredEngine else { return }
+    mirroredEngine.mirrorCount -= 1
+    self.mirroredEngine = nil
+    if engine == nil {
+      surface.player = nil
+      embeddedController?.player = nil
+      if posterUri != nil {
+        posterView.isHidden = false
+      }
+    }
   }
 
   // MARK: - Inline rendering handoff (fullscreen presenter)
@@ -462,10 +581,11 @@ class HybridVideoView: HybridVideoViewSpec {
   /// mode the embedded controller owns rendering and the bare layer must stay
   /// blank.
   func resumeInlineRendering() {
+    let player = engine?.player ?? mirroredEngine?.player
     if let embeddedController {
-      embeddedController.player = engine.player
+      embeddedController.player = player
     } else {
-      surface.player = engine.player
+      surface.player = player
     }
   }
 
@@ -491,8 +611,12 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
+  private var isPresentedFullscreen: Bool {
+    engine.map { FullscreenPresenter.shared.isPresenting(engine: $0) } ?? false
+  }
+
   private func updateControlsSurface() {
-    if FullscreenPresenter.shared.isPresenting(engine: engine) || isFullscreen {
+    if isPresentedFullscreen || isFullscreen {
       pendingControlsUpdate = true
       return
     }
@@ -507,11 +631,6 @@ class HybridVideoView: HybridVideoViewSpec {
       // Registering as the Now Playing app forcibly interrupts other apps'
       // audio — never do it implicitly.
       controller.updatesNowPlayingInfoCenter = false
-      // While the fullscreen presenter renders this engine, the embedded
-      // surface mounts blank — FullscreenPresenter.finishExit hands the
-      // player over via resumeInlineRendering().
-      controller.player =
-        FullscreenPresenter.shared.isPresenting(engine: engine) ? nil : engine.player
       controller.videoGravity = PlayerLayerView.gravity(for: resizeMode)
       controller.allowsPictureInPicturePlayback = allowsPictureInPicture
       controller.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
@@ -541,28 +660,37 @@ class HybridVideoView: HybridVideoViewSpec {
       controller.removeFromParent()
       controller.player = nil
       embeddedController = nil
-      surface.player =
-        FullscreenPresenter.shared.isPresenting(engine: engine) ? nil : engine.player
     }
+    resumeInlineRendering()
   }
 
   // MARK: - Autoplay + coordination
 
   private func applyAutoplay() {
-    guard source != nil, surface.window != nil else { return }
-    if autoplayMode == .always {
-      engine.play(reason: .system)
-    }
+    guard source != nil, surface.window != nil, autoplayMode == .always else { return }
+    ensureEngine(force: true)?.play(reason: .system)
+  }
+
+  /// Coordinator-driven play: leases the engine if needed (unless it's
+  /// mirroring one another on-window view controls).
+  func coordinatorPlay() {
+    ensureEngine(force: false)?.play(reason: .coordinator)
   }
 
   private func handleWindowChanged() {
     updateCoordinatorRegistration()
     if surface.window == nil {
-      if !isInPictureInPicture, !isFullscreen {
-        resumePlaybackOnAttach = engine.status == .playing || engine.status == .buffering
-        engine.pause(reason: .system)
+      lastVisibleFraction = 0
+      if let engine, engine.mirrorCount > 0 {
+        // Another view is showing this player (the screen under a pop):
+        // hand it over now rather than pausing it out from under them.
+        releaseEngine()
+      } else if !isInPictureInPicture, !isFullscreen {
+        resumePlaybackOnAttach = isPlaying
+        engine?.pause(reason: .system)
         scheduleHibernate()
       }
+      dropMirror()
     } else {
       hibernateWorkItem?.cancel()
       hibernateWorkItem = nil
@@ -571,10 +699,10 @@ class HybridVideoView: HybridVideoViewSpec {
       // pop would otherwise rebuild every cell of the feed at once).
       // Props (including source) are set before the view joins a window, so
       // autoplay for a still-loading source applies here, not at prop-set.
-      if engine.status == .loading {
+      if engine == nil || engine?.status == .loading {
         applyAutoplay()
       } else if resumePlaybackOnAttach, autoplayMode != .whenvisible {
-        engine.play(reason: .system)
+        engine?.play(reason: .system)
       }
       resumePlaybackOnAttach = false
       if controls, embeddedController == nil {
@@ -600,7 +728,8 @@ class HybridVideoView: HybridVideoViewSpec {
   }
 
   private func hibernateNow() {
-    guard !engine.isHibernated else { return }
+    dropMirror()
+    guard let engine, !engine.isHibernated else { return }
     if posterUri != nil {
       posterView.isHidden = false
     }
@@ -611,12 +740,10 @@ class HybridVideoView: HybridVideoViewSpec {
   }
 
   /// Coordinator-driven item liveness for on-window views: invisible (or
-  /// surplus) videos release their player item; wanted ones rebuild it.
+  /// surplus) videos release their player item; wanted ones lease/rebuild.
   func setItemLive(_ live: Bool) {
     if live {
-      if engine.isHibernated {
-        engine.wake()
-      }
+      ensureEngine(force: false)?.wake()
     } else if !isFullscreen, !isInPictureInPicture {
       hibernateNow()
     }
@@ -659,10 +786,10 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
   ) {
     // Keep playback rolling through AVKit's transition (it implicitly pauses
     // the player at points during present/dismiss).
-    owner?.engine.beginTransitionPlaybackHold()
+    owner?.engine?.beginTransitionPlaybackHold()
     owner?.fullscreenTransition(active: true)
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
-      self?.owner?.engine.endTransitionPlaybackHold()
+      self?.owner?.engine?.endTransitionPlaybackHold()
     }
   }
 
@@ -673,12 +800,12 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
     // Capture before AVKit's implicit pause during dismissal, and restore the
     // playback intent once the exit transition completes.
     let wasPlaying = playerViewController.player?.timeControlStatus != .paused
-    owner?.engine.beginTransitionPlaybackHold()
+    owner?.engine?.beginTransitionPlaybackHold()
     coordinator.animate(alongsideTransition: nil) { [weak self] _ in
       guard let owner = self?.owner else { return }
       owner.fullscreenExitPlaybackIntent(wasPlaying: wasPlaying)
       owner.fullscreenTransition(active: false)
-      owner.engine.endTransitionPlaybackHold()
+      owner.engine?.endTransitionPlaybackHold()
       owner.applyPendingControlsUpdate()
     }
   }
@@ -738,6 +865,7 @@ enum VideoViewError: Error, LocalizedError {
   case notInFullscreen
   case noViewControllerToPresentFrom
   case pictureInPictureNotPossible
+  case noSource
 
   var errorDescription: String? {
     switch self {
@@ -751,6 +879,8 @@ enum VideoViewError: Error, LocalizedError {
       return "Could not find a view controller to present fullscreen from"
     case .pictureInPictureNotPossible:
       return "Picture in Picture is not possible right now"
+    case .noSource:
+      return "The video has no source"
     }
   }
 }

@@ -67,6 +67,8 @@ export interface VideoViewProps extends HybridViewProps {
   resizeMode: ResizeMode
   controls: boolean
   posterUri?: string
+  /** Player identity in the pool; defaults to the source uri. */
+  playerKey?: string
   allowsPictureInPicture: boolean
   progressUpdateInterval: number
   audioMixMode: AudioMixMode

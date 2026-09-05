@@ -68,6 +68,12 @@ export interface VideoViewProps {
   /** Image shown until the first video frame is ready. */
   poster?: string
   /**
+   * Identity of this video's native player in the shared pool. Defaults to
+   * the source uri. Views with the same key share one player: open a post
+   * from a feed and its video continues from the same frame, no reload.
+   */
+  playerKey?: string
+  /**
    * Enables Picture-in-Picture for this video — including automatically
    * entering PiP with the currently playing video when the app is backgrounded.
    */

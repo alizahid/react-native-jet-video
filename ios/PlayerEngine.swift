@@ -10,11 +10,22 @@ protocol PlayerEngineDelegate: AnyObject {
 }
 
 /// Owns an AVPlayer + AVPlayerItem and all their observers, and reduces their
-/// combined state into a single `PlaybackStatus` stream. Decoupled from the
-/// view so fullscreen/PiP can retain playback across cell recycling.
+/// combined state into a single `PlaybackStatus` stream. Engines live in the
+/// `PlayerPool`, keyed by the view's `playerKey`, and move between views —
+/// so a feed cell and the post screen showing the same video share one
+/// player, and fullscreen/PiP retain playback across cell recycling.
 final class PlayerEngine {
+  let key: String
   let player = AVPlayer()
   weak var delegate: PlayerEngineDelegate?
+  /// The view currently controlling this engine (pool-managed).
+  weak var owner: HybridVideoView?
+  /// Views rendering this engine's player without controlling it — the
+  /// previous owner during a screen transition. While any exist, releasing
+  /// ownership must not pause playback.
+  var mirrorCount = 0
+  /// LRU stamp for pool eviction.
+  var lastUsed = Date()
 
   private(set) var status: PlaybackStatus = .idle
   private(set) var sourceUri: String?
@@ -25,6 +36,9 @@ final class PlayerEngine {
 
   private var currentSource: VideoSource?
   private var resumeTime: Double = 0
+  // The last load event, replayed to a new owner so its JS side learns the
+  // duration/size of a video that loaded under a previous view.
+  private var lastLoadEvent: LoadEvent?
   // Set when the loaded item reports an indefinite duration. A live stream
   // must never be resumed at a wall-clock position after hibernation — the
   // old offset points into a sliding window that has since moved.
@@ -109,7 +123,8 @@ final class PlayerEngine {
   // Strong: the asset's resourceLoader delegate is weakly referenced by AVFoundation.
   private var resourceLoader: CachingResourceLoader?
 
-  init() {
+  init(key: String) {
+    self.key = key
     // Ends are handled in itemDidPlayToEnd: a loop seeks without the rate
     // ever dropping (no paused/playing flicker between iterations), and a
     // one-shot pauses through this engine so the pause is never mistaken
@@ -147,7 +162,9 @@ final class PlayerEngine {
 
   // MARK: - Source
 
-  func setSource(_ source: VideoSource?) {
+  /// `resumeAt` seeds the playhead for a source that played before under an
+  /// engine the pool has since evicted.
+  func setSource(_ source: VideoSource?, resumeAt: Double = 0) {
     let uri = source?.uri
     guard uri != sourceUri else {
       // Same uri re-set (list re-render): keep playback/hibernation state,
@@ -158,7 +175,8 @@ final class PlayerEngine {
     sourceUri = uri
     currentSource = source
     isHibernated = false
-    resumeTime = 0
+    resumeTime = resumeAt
+    lastLoadEvent = nil
     isLiveStream = false
     playIntent += 1
 
@@ -210,6 +228,18 @@ final class PlayerEngine {
     // doesn't burn a retry on an already-rebuilt item).
     if status == .error {
       transition(to: .loading, reason: .system)
+    }
+  }
+
+  /// Re-emits the current load/status state to a delegate that just took
+  /// over this engine, so a view adopting a playing video reports it as
+  /// loaded and playing instead of idle.
+  func replayState(to delegate: PlayerEngineDelegate) {
+    if let lastLoadEvent {
+      delegate.engine(self, didLoad: lastLoadEvent)
+    }
+    if status != .idle {
+      delegate.engine(self, didChangeStatus: status, reason: .system)
     }
   }
 
@@ -418,18 +448,22 @@ final class PlayerEngine {
         let duration = item.duration
         let isLive = duration.isIndefinite
         isLiveStream = isLive
-        delegate?.engine(
-          self,
-          didLoad: LoadEvent(
-            duration: isLive ? -1 : duration.seconds,
-            naturalWidth: Double(item.presentationSize.width),
-            naturalHeight: Double(item.presentationSize.height),
-            isLive: isLive
-          )
+        let event = LoadEvent(
+          duration: isLive ? -1 : duration.seconds,
+          naturalWidth: Double(item.presentationSize.width),
+          naturalHeight: Double(item.presentationSize.height),
+          isLive: isLive
         )
+        lastLoadEvent = event
+        delegate?.engine(self, didLoad: event)
         if status == .loading {
           transition(to: .readytoplay, reason: .system)
         }
+      }
+      // A ready-but-idle player decodes ahead so its first play() starts on
+      // the very next frame instead of spinning up the pipeline first.
+      if !expectedPlaying, player.rate == 0 {
+        player.preroll(atRate: 1)
       }
     case .failed:
       let nsError = item.error as NSError?

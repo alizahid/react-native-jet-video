@@ -89,6 +89,8 @@ namespace margelo::nitro::jetvideo {
       virtual void setControls(bool controls) = 0;
       virtual std::optional<std::string> getPosterUri() = 0;
       virtual void setPosterUri(const std::optional<std::string>& posterUri) = 0;
+      virtual std::optional<std::string> getPlayerKey() = 0;
+      virtual void setPlayerKey(const std::optional<std::string>& playerKey) = 0;
       virtual bool getAllowsPictureInPicture() = 0;
       virtual void setAllowsPictureInPicture(bool allowsPictureInPicture) = 0;
       virtual double getProgressUpdateInterval() = 0;

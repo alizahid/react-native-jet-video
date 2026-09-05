@@ -106,6 +106,16 @@ namespace margelo::nitro::jetvideo::views {
         throw std::runtime_error(std::string("VideoView.posterUri: ") + exc.what());
       }
     }()),
+    playerKey([&]() -> CachedProp<std::optional<std::string>> {
+      try {
+        const react::RawValue* rawValue = rawProps.at("playerKey", nullptr, nullptr);
+        if (rawValue == nullptr) return sourceProps.playerKey;
+        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
+        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.playerKey);
+      } catch (const std::exception& exc) {
+        throw std::runtime_error(std::string("VideoView.playerKey: ") + exc.what());
+      }
+    }()),
     allowsPictureInPicture([&]() -> CachedProp<bool> {
       try {
         const react::RawValue* rawValue = rawProps.at("allowsPictureInPicture", nullptr, nullptr);
@@ -277,6 +287,7 @@ namespace margelo::nitro::jetvideo::views {
       case hashString("resizeMode"): return true;
       case hashString("controls"): return true;
       case hashString("posterUri"): return true;
+      case hashString("playerKey"): return true;
       case hashString("allowsPictureInPicture"): return true;
       case hashString("progressUpdateInterval"): return true;
       case hashString("audioMixMode"): return true;

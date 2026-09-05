@@ -7,6 +7,11 @@ export interface AutoplayConfig {
   hysteresis?: number
 }
 
+export interface PlayerPoolConfig {
+  /** Most native players kept alive at once, across every screen. Default 10. */
+  maxPlayers?: number
+}
+
 export interface CacheConfig {
   /** Total disk budget for the video cache, in bytes. Default 1 GB. */
   maxSizeBytes?: number
@@ -14,6 +19,7 @@ export interface CacheConfig {
 
 export interface VideoConfig extends HybridObject<{ ios: 'swift' }> {
   configureAutoplay(config: AutoplayConfig): void
+  configurePlayerPool(config: PlayerPoolConfig): void
   setAudioSessionManagementEnabled(enabled: boolean): void
   configureCache(config: CacheConfig): void
   clearCache(): Promise<void>

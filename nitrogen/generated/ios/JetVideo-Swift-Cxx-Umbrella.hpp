@@ -28,6 +28,8 @@ namespace margelo::nitro::jetvideo { enum class PlaybackChangeReason; }
 namespace margelo::nitro::jetvideo { struct PlaybackStateEvent; }
 // Forward declaration of `PlaybackStatus` to properly resolve imports.
 namespace margelo::nitro::jetvideo { enum class PlaybackStatus; }
+// Forward declaration of `PlayerPoolConfig` to properly resolve imports.
+namespace margelo::nitro::jetvideo { struct PlayerPoolConfig; }
 // Forward declaration of `ProgressEvent` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct ProgressEvent; }
 // Forward declaration of `ResizeMode` to properly resolve imports.
@@ -50,6 +52,7 @@ namespace margelo::nitro::jetvideo { enum class VisibilityAxis; }
 #include "PlaybackChangeReason.hpp"
 #include "PlaybackStateEvent.hpp"
 #include "PlaybackStatus.hpp"
+#include "PlayerPoolConfig.hpp"
 #include "ProgressEvent.hpp"
 #include "ResizeMode.hpp"
 #include "VideoErrorEvent.hpp"

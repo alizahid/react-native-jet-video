@@ -2,6 +2,7 @@ import { NitroModules } from 'react-native-nitro-modules'
 import type {
   AutoplayConfig,
   CacheConfig,
+  PlayerPoolConfig,
   VideoConfig,
 } from './specs/VideoConfig.nitro'
 
@@ -20,6 +21,15 @@ function nativeConfig(): VideoConfig {
  */
 export function configureAutoplay(options: AutoplayConfig): void {
   nativeConfig().configureAutoplay(options)
+}
+
+/**
+ * Bounds the pool of native players shared by every `VideoView` in the app
+ * (default 10). The least recently used player that nothing is displaying is
+ * released to make room; its playhead is remembered.
+ */
+export function configurePlayerPool(options: PlayerPoolConfig): void {
+  nativeConfig().configurePlayerPool(options)
 }
 
 /**
@@ -48,4 +58,4 @@ export function getCacheSize(): Promise<number> {
   return nativeConfig().getCacheSizeBytes()
 }
 
-export type { AutoplayConfig, CacheConfig }
+export type { AutoplayConfig, CacheConfig, PlayerPoolConfig }

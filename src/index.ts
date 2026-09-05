@@ -4,7 +4,9 @@ export {
   clearCache,
   configureAutoplay,
   configureCache,
+  configurePlayerPool,
   getCacheSize,
+  type PlayerPoolConfig,
   setAudioSessionManagementEnabled,
 } from './coordinator'
 export type {

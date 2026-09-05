@@ -30,7 +30,7 @@ final class FullscreenPresenter: NSObject {
 
   // MARK: - Enter
 
-  func enter(for view: HybridVideoView, completion: @escaping (Error?) -> Void) {
+  func enter(for view: HybridVideoView, engine: PlayerEngine, completion: @escaping (Error?) -> Void) {
     guard controller == nil else {
       completion(VideoViewError.fullscreenAlreadyPresented)
       return
@@ -41,7 +41,7 @@ final class FullscreenPresenter: NSObject {
     }
 
     let controller = AVPlayerViewController()
-    controller.player = view.engine.player
+    controller.player = engine.player
     // Registering as the Now Playing app forcibly interrupts other apps'
     // audio — never do it implicitly.
     controller.updatesNowPlayingInfoCenter = false
@@ -51,12 +51,12 @@ final class FullscreenPresenter: NSObject {
     controller.delegate = self
 
     self.controller = controller
-    engine = view.engine
+    self.engine = engine
     self.view = view
 
     // AVKit implicitly pauses the player at points during its transitions —
     // hold playback so the video keeps rolling through the animation.
-    view.engine.beginTransitionPlaybackHold()
+    engine.beginTransitionPlaybackHold()
 
     if Self.supportsAVKitTransition(controller) {
       // Embed over the inline surface so AVKit's transition zooms out of

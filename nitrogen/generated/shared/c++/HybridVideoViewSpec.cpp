@@ -30,6 +30,8 @@ namespace margelo::nitro::jetvideo {
       prototype.registerHybridSetter("controls", &HybridVideoViewSpec::setControls);
       prototype.registerHybridGetter("posterUri", &HybridVideoViewSpec::getPosterUri);
       prototype.registerHybridSetter("posterUri", &HybridVideoViewSpec::setPosterUri);
+      prototype.registerHybridGetter("playerKey", &HybridVideoViewSpec::getPlayerKey);
+      prototype.registerHybridSetter("playerKey", &HybridVideoViewSpec::setPlayerKey);
       prototype.registerHybridGetter("allowsPictureInPicture", &HybridVideoViewSpec::getAllowsPictureInPicture);
       prototype.registerHybridSetter("allowsPictureInPicture", &HybridVideoViewSpec::setAllowsPictureInPicture);
       prototype.registerHybridGetter("progressUpdateInterval", &HybridVideoViewSpec::getProgressUpdateInterval);

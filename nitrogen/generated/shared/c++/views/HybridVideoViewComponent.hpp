@@ -59,6 +59,7 @@ namespace margelo::nitro::jetvideo::views {
     CachedProp<ResizeMode> resizeMode;
     CachedProp<bool> controls;
     CachedProp<std::optional<std::string>> posterUri;
+    CachedProp<std::optional<std::string>> playerKey;
     CachedProp<bool> allowsPictureInPicture;
     CachedProp<double> progressUpdateInterval;
     CachedProp<AudioMixMode> audioMixMode;

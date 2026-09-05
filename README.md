@@ -46,7 +46,8 @@ Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or a
 
 How the election works (all native, ~10 Hz, works with nested/clipped scroll views):
 
-- A video is eligible once it's ≥20% visible; the most-visible eligible video plays (and stops once it drops below the threshold). Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
+- A video is eligible once it's ≥20% visible; the most-visible eligible video plays (and stops once it drops below the threshold). When two are comparably visible, the first in reading order plays — the top one in a feed, the leftmost in a carousel. Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
+- Any video that's even slightly on screen is loaded and prerolled, so the moment it's elected it starts on the next frame.
 - When two videos are comparably visible (e.g. both fully on screen), the one **closest to the center of the screen** plays — so scrolling in either direction hands playback to the video you're looking at.
 - Hysteresis + debouncing prevent flapping when two videos are near 50/50.
 - If the user pauses a video (ref or tap), the coordinator **never force-resumes it** — until it scrolls fully away, which resets it like feeds you know.
@@ -70,6 +71,19 @@ If your feed cells swipe **horizontally** for actions (upvote, dismiss, reveal b
 
 ```tsx
 <VideoView source={item.uri} autoplay="whenVisible" visibilityAxis="vertical" />
+```
+
+### One shared pool of players
+
+Every `VideoView` draws its native player from one app-wide pool (10 by default, `configurePlayerPool({ maxPlayers })`), keyed by `playerKey` — the source uri unless you set one. That gives you Twitter-grade continuity for free:
+
+- **Feed → post → back, no reload.** The post screen shows the same video as the feed cell, so it *is* the same player: it continues from the same frame the instant the screen appears, and hands back just as seamlessly when you pop. The cell under the pushed screen keeps rendering the player during the transition — nothing blanks.
+- **Scroll away and back, same position.** A cell that scrolls off keeps its player idle in the pool; scroll back and it resumes where it was. When the pool is full, the least recently used player nothing is displaying is released and its playhead remembered, so even an evicted video resumes at the right second.
+- **Bounded, everywhere.** Ten players is the ceiling across every list and every screen in the stack; fullscreen, PiP and on-screen players are never evicted.
+
+```tsx
+// Same video in two places? Give both the same key (default: the source uri).
+<VideoView source={post.video} playerKey={post.id} autoplay="whenVisible" />
 ```
 
 ### Memory management is automatic
@@ -106,6 +120,7 @@ Expo: works in a [development build](https://docs.expo.dev/develop/development-b
 | `volume` | `number` | `1` | 0–1, independent of `muted` |
 | `resizeMode` | `'cover' \| 'contain' \| 'stretch'` | `'cover'` | |
 | `controls` | `boolean` | `false` | Native system playback controls |
+| `playerKey` | `string` | source uri | Player identity in the shared pool (see above) |
 | `poster` | `string` | — | Image shown until the first frame renders |
 | `allowsPictureInPicture` | `boolean` | `false` | Enables PiP, incl. auto-PiP on backgrounding |
 | `progressUpdateInterval` | `number` | `500` | ms between `onProgress`; `0` disables |

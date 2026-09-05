@@ -150,6 +150,13 @@ namespace margelo::nitro::jetvideo {
     inline void setPosterUri(const std::optional<std::string>& posterUri) noexcept override {
       _swiftPart.setPosterUri(posterUri);
     }
+    inline std::optional<std::string> getPlayerKey() noexcept override {
+      auto __result = _swiftPart.getPlayerKey();
+      return __result;
+    }
+    inline void setPlayerKey(const std::optional<std::string>& playerKey) noexcept override {
+      _swiftPart.setPlayerKey(playerKey);
+    }
     inline bool getAllowsPictureInPicture() noexcept override {
       return _swiftPart.getAllowsPictureInPicture();
     }

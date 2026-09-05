@@ -119,6 +119,11 @@ using namespace margelo::nitro::jetvideo::views;
     swiftPart.setPosterUri(newViewProps.posterUri.value);
     newViewProps.posterUri.isDirty = false;
   }
+  // playerKey: optional
+  if (newViewProps.playerKey.isDirty) {
+    swiftPart.setPlayerKey(newViewProps.playerKey.value);
+    newViewProps.playerKey.isDirty = false;
+  }
   // allowsPictureInPicture: boolean
   if (newViewProps.allowsPictureInPicture.isDirty) {
     swiftPart.setAllowsPictureInPicture(newViewProps.allowsPictureInPicture.value);

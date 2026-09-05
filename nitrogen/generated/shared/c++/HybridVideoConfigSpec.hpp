@@ -15,10 +15,13 @@
 
 // Forward declaration of `AutoplayConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct AutoplayConfig; }
+// Forward declaration of `PlayerPoolConfig` to properly resolve imports.
+namespace margelo::nitro::jetvideo { struct PlayerPoolConfig; }
 // Forward declaration of `CacheConfig` to properly resolve imports.
 namespace margelo::nitro::jetvideo { struct CacheConfig; }
 
 #include "AutoplayConfig.hpp"
+#include "PlayerPoolConfig.hpp"
 #include "CacheConfig.hpp"
 #include <NitroModules/Promise.hpp>
 
@@ -54,6 +57,7 @@ namespace margelo::nitro::jetvideo {
     public:
       // Methods
       virtual void configureAutoplay(const AutoplayConfig& config) = 0;
+      virtual void configurePlayerPool(const PlayerPoolConfig& config) = 0;
       virtual void setAudioSessionManagementEnabled(bool enabled) = 0;
       virtual void configureCache(const CacheConfig& config) = 0;
       virtual std::shared_ptr<Promise<void>> clearCache() = 0;

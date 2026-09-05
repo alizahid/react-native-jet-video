@@ -15,6 +15,7 @@ namespace margelo::nitro::jetvideo {
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("configureAutoplay", &HybridVideoConfigSpec::configureAutoplay);
+      prototype.registerHybridMethod("configurePlayerPool", &HybridVideoConfigSpec::configurePlayerPool);
       prototype.registerHybridMethod("setAudioSessionManagementEnabled", &HybridVideoConfigSpec::setAudioSessionManagementEnabled);
       prototype.registerHybridMethod("configureCache", &HybridVideoConfigSpec::configureCache);
       prototype.registerHybridMethod("clearCache", &HybridVideoConfigSpec::clearCache);

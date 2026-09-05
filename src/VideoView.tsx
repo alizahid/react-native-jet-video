@@ -47,6 +47,7 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
       resizeMode = 'cover',
       controls = false,
       poster,
+      playerKey,
       allowsPictureInPicture = false,
       progressUpdateInterval = 500,
       audioMixMode = 'mixWithOthers',
@@ -134,6 +135,7 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         resizeMode={resizeMode}
         controls={controls}
         posterUri={poster}
+        playerKey={playerKey}
         allowsPictureInPicture={allowsPictureInPicture}
         progressUpdateInterval={progressUpdateInterval}
         audioMixMode={audioMixMode}

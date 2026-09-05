@@ -3,6 +3,7 @@ import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import { BasicPlayback } from './screens/BasicPlayback'
 import { Cache } from './screens/Cache'
 import { Feed } from './screens/Feed'
+import { FeedToDetail } from './screens/FeedToDetail'
 import { Fullscreen } from './screens/Fullscreen'
 import { PictureInPicture } from './screens/PictureInPicture'
 import { RefMethods } from './screens/RefMethods'
@@ -13,6 +14,7 @@ const SCREENS = {
   BasicPlayback: BasicPlayback,
   RefMethods: RefMethods,
   Feed: Feed,
+  FeedToDetail: FeedToDetail,
   Stacked: Stacked,
   SwipeActions: SwipeActions,
   Fullscreen: Fullscreen,

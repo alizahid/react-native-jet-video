@@ -13,6 +13,14 @@ class HybridVideoConfig: HybridVideoConfigSpec {
     }
   }
 
+  func configurePlayerPool(config: PlayerPoolConfig) throws {
+    DispatchQueue.main.async {
+      if let maxPlayers = config.maxPlayers, maxPlayers.isFinite, maxPlayers >= 1 {
+        PlayerPool.maxPlayers = Int(min(64, maxPlayers))
+      }
+    }
+  }
+
   func setAudioSessionManagementEnabled(enabled: Bool) throws {
     DispatchQueue.main.async {
       AudioSessionManager.isManagementEnabled = enabled
