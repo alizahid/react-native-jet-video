@@ -13,7 +13,7 @@ import Foundation
 /// video resumes where it was should it come back. Main-thread only.
 final class PlayerPool {
   static let shared = PlayerPool()
-  static var maxPlayers = 10
+  static var maxPlayers = 5
   /// Remembered playheads for evicted engines.
   private static let maxPositions = 200
 

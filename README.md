@@ -75,7 +75,7 @@ If your feed cells swipe **horizontally** for actions (upvote, dismiss, reveal b
 
 ### One shared pool of players
 
-Every `VideoView` draws its native player from one app-wide pool (10 by default, `configurePlayerPool({ maxPlayers })`), keyed by `playerKey` — the source uri unless you set one. That gives you Twitter-grade continuity for free:
+Every `VideoView` draws its native player from one app-wide pool (5 by default, `configurePlayerPool({ maxPlayers })`), keyed by `playerKey` — the source uri unless you set one. That gives you Twitter-grade continuity for free:
 
 - **Feed → post → back, no reload.** The post screen shows the same video as the feed cell, so it *is* the same player: it continues from the same frame the instant the screen appears, and hands back just as seamlessly when you pop. The cell under the pushed screen keeps rendering the player during the transition — nothing blanks.
 - **Scroll away and back, same position.** A cell that scrolls off keeps its player idle in the pool; scroll back and it resumes where it was. When the pool is full, the least recently used player nothing is displaying is released and its playhead remembered, so even an evicted video resumes at the right second.
@@ -85,18 +85,18 @@ Every `VideoView` draws its native player from one app-wide pool (10 by default,
 // Same video in two places? Give both the same key (default: the source uri).
 <VideoView source={post.video} playerKey={post.id} autoplay="whenVisible" />
 
-configurePlayerPool({ maxPlayers: 5 }) // default 10
+configurePlayerPool({ maxPlayers: 10 }) // default 5
 const { players, liveItems } = await getPlayerPoolStats() // for your own dashboards
 ```
 
-The example app's Feed screen pushes onto itself without limit and shows the pool readout in its header — ten stacked feeds of 200 videos each hold ten players, three or four of them live.
+The example app's Feed screen pushes onto itself without limit and shows the pool readout in its header — ten stacked feeds of 200 videos each hold five players, three or four of them live.
 
 ### Memory management is automatic
 
 Video feeds are memory-hungry by default; the library keeps them flat no matter how deep your app goes:
 
-- **The pool is the only budget.** A video gets a player the moment any of it is on screen, and keeps it — off-screen cells, covered screens, popped detail views all stay live until the pool's LRU eviction actually needs the slot. Scrolling back or popping back to any of the last ten videos is instant; nothing is torn down on a timer.
-- **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed. Ten of those is a modest, fixed cost; a 10-deep stack of video feeds costs the same as one.
+- **The pool is the only budget.** A video gets a player the moment any of it is on screen, and keeps it — off-screen cells, covered screens, popped detail views all stay live until the pool's LRU eviction actually needs the slot. Scrolling back or popping back to any of the last five videos (or however many you configure) is instant; nothing is torn down on a timer.
+- **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed. Five of those is a small, fixed cost; a 10-deep stack of video feeds costs the same as one.
 - **Eviction never blanks the screen.** Fullscreen, PiP and on-screen players are never evicted; the pool grows past its cap for a moment rather than take one away (a wall of thumbnails on iPad, both screens during a push), and settles back as soon as something leaves the screen.
 - **Transient failures self-heal.** If a visible video errors (decoder pressure, flaky network), it's automatically rebuilt and retried a bounded number of times instead of staying black.
 - **Posters are downsampled** to screen-width pixels at decode, so full-resolution poster URLs don't balloon memory.

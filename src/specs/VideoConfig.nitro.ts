@@ -8,7 +8,7 @@ export interface AutoplayConfig {
 }
 
 export interface PlayerPoolConfig {
-  /** Most native players kept alive at once, across every screen. Default 10. */
+  /** Most native players kept alive at once, across every screen. Default 5. */
   maxPlayers?: number
 }
 

@@ -26,7 +26,7 @@ export function configureAutoplay(options: AutoplayConfig): void {
 
 /**
  * Bounds the pool of native players shared by every `VideoView` in the app
- * (default 10). The least recently used player that nothing is displaying is
+ * (default 5). The least recently used player that nothing is displaying is
  * released to make room; its playhead is remembered.
  */
 export function configurePlayerPool(options: PlayerPoolConfig): void {
