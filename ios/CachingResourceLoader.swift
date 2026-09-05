@@ -14,32 +14,38 @@ final class CachingResourceLoader: NSObject {
     "mp4", "m4v", "mov", "m4a", "mp3", "aac", "wav",
   ]
 
-  let queue = DispatchQueue(label: "com.jetvideo.resourceloader")
+  /// One serial queue for every loader: AVFoundation's loading-request
+  /// callbacks, the network delegate callbacks and all cache IO run here.
+  static let queue = DispatchQueue(label: "com.jetvideo.resourceloader")
+
+  /// One session for every loader, with the loader as each *task's*
+  /// delegate. A session per video meant a private queue, connection pool
+  /// and delegate-retain cycle per feed cell. URLCache is off: the video
+  /// cache is the cache — buffering responses a second time in memory/disk
+  /// is pure waste.
+  private static let session: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    configuration.urlCache = nil
+    configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+    let delegateQueue = OperationQueue()
+    delegateQueue.maxConcurrentOperationCount = 1
+    delegateQueue.underlyingQueue = queue
+    return URLSession(configuration: configuration, delegate: nil, delegateQueue: delegateQueue)
+  }()
 
   private let originalURL: URL
   private let headers: [String: String]
   private let entry: CacheEntry
-  private let operationQueue: OperationQueue
   private var handlers: [AVAssetResourceLoadingRequest: RequestHandler] = [:]
   private var taskRouter: [Int: RequestHandler] = [:]
-  // Created on first network miss (cache-served sources never need one).
-  // NSURLSession retains its delegate until invalidated, so lifecycle is
-  // managed by an explicit invalidate() — NOT deinit: with a live session
-  // deinit can never run, and creating the lazy session during deinit hands
-  // CFNetwork a half-deallocated delegate (use-after-free).
-  private var session: URLSession?
   // Guarded by `queue`. A loading request that AVFoundation delivers after
-  // invalidation must not recreate the session — it would never be
-  // invalidated again, retaining this loader (and its download) forever.
+  // invalidation must not start new work.
   private var invalidated = false
 
   init(originalURL: URL, headers: [String: String]) {
     self.originalURL = originalURL
     self.headers = headers
     entry = VideoCache.shared.entry(for: originalURL)
-    operationQueue = OperationQueue()
-    operationQueue.maxConcurrentOperationCount = 1
-    operationQueue.underlyingQueue = queue
     super.init()
   }
 
@@ -47,29 +53,17 @@ final class CachingResourceLoader: NSObject {
     VideoCache.shared.enforceLimit()
   }
 
-  /// Cancels all in-flight work and breaks the session→delegate retain so the
-  /// loader can deallocate. Must be called when the owning item is detached;
-  /// safe to call multiple times and from any thread.
+  /// Cancels all in-flight work. Must be called when the owning item is
+  /// detached; safe to call multiple times and from any thread.
   func invalidate() {
-    queue.async { [self] in
+    Self.queue.async { [self] in
       invalidated = true
       for handler in handlers.values {
         handler.cancel()
       }
       handlers.removeAll()
       taskRouter.removeAll()
-      session?.invalidateAndCancel()
-      session = nil
     }
-  }
-
-  private func networkSession() -> URLSession {
-    if let session {
-      return session
-    }
-    let session = URLSession(configuration: .default, delegate: self, delegateQueue: operationQueue)
-    self.session = session
-    return session
   }
 
   /// The custom-scheme URL AVPlayer should load, or nil when this source
@@ -112,7 +106,8 @@ final class CachingResourceLoader: NSObject {
       headers: headers,
       makeTask: { [weak self] request, handler in
         guard let self, !invalidated else { return nil }
-        let task = networkSession().dataTask(with: request)
+        let task = Self.session.dataTask(with: request)
+        task.delegate = self
         taskRouter[task.taskIdentifier] = handler
         return task
       },

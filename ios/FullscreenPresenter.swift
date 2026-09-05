@@ -69,8 +69,12 @@ final class FullscreenPresenter: NSObject {
       controller.didMove(toParent: parent)
 
       enterCompletion = completion
-      DispatchQueue.main.async {
-        view.view.layoutIfNeeded()
+      view.view.layoutIfNeeded()
+      // Start the zoom only once the controller's own layer has a frame:
+      // the inline surface is blanked as the transition begins, and a
+      // controller that hasn't rendered yet flashes black at the inline
+      // rect for the first frames of the animation.
+      Self.once(controller, isTrue: \.isReadyForDisplay, timeout: 0.35) {
         Self.performTransition(controller, selectorName: "enterFullScreenAnimated:completionHandler:")
       }
     } else {
@@ -161,27 +165,44 @@ final class FullscreenPresenter: NSObject {
     surface: PlayerLayerView?,
     completion: @escaping () -> Void
   ) {
-    guard let layer = surface?.playerLayer, !layer.isReadyForDisplay else {
+    guard let layer = surface?.playerLayer else {
       tearDown(controller)
       completion()
       return
     }
+    once(layer, isTrue: \.isReadyForDisplay, timeout: 0.35) {
+      tearDown(controller)
+      completion()
+    }
+  }
+
+  /// Runs `action` on main as soon as `keyPath` is true — now, on its next
+  /// KVO change, or after `timeout` regardless.
+  private static func once<T: NSObject>(
+    _ object: T,
+    isTrue keyPath: KeyPath<T, Bool>,
+    timeout: TimeInterval,
+    then action: @escaping () -> Void
+  ) {
+    if object[keyPath: keyPath] {
+      action()
+      return
+    }
     var observation: NSKeyValueObservation?
     var finished = false
-    let complete = {
+    let finish = {
       guard !finished else { return }
       finished = true
       observation?.invalidate()
       observation = nil
-      tearDown(controller)
-      completion()
+      action()
     }
-    observation = layer.observe(\.isReadyForDisplay) { layer, _ in
-      if layer.isReadyForDisplay {
-        DispatchQueue.main.async { complete() }
+    observation = object.observe(keyPath) { object, _ in
+      if object[keyPath: keyPath] {
+        DispatchQueue.main.async(execute: finish)
       }
     }
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { complete() }
+    DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: finish)
   }
 
   // MARK: - AVKit transition

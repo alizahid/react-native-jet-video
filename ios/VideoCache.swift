@@ -78,10 +78,17 @@ final class VideoCache {
     }
   }
 
+  // Queue-confined.
+  private var lastEnforce = Date.distantPast
+
   /// Evicts least-recently-used entries until the cache fits the budget.
   /// Called after downloads finish; entries in active use are skipped.
+  /// Scanning the cache directory isn't free, and every item detach calls
+  /// this — so at most once every 30s (a burst may briefly overshoot).
   func enforceLimit() {
     queue.async { [self] in
+      guard Date().timeIntervalSince(lastEnforce) > 30 else { return }
+      lastEnforce = Date()
       guard diskSize() > maxSizeBytes else { return }
       let fileManager = FileManager.default
       let metas = ((try? fileManager.contentsOfDirectory(
@@ -145,6 +152,13 @@ final class CacheEntry {
   private var ranges: [Range<Int64>] = []
   private var storedContentLength: Int64?
   private var storedContentType: String?
+  // Metadata is read from disk on first use (on the loader queue, never the
+  // main thread that creates entries) and written back at most once per
+  // second — a stream delivers hundreds of chunks a second, and a JSON
+  // encode + file write per chunk is a lot of IO for nothing.
+  private var loaded = false
+  private var metaDirty = false
+  private var lastPersist = Date.distantPast
 
   private struct Meta: Codable {
     var url: String
@@ -157,10 +171,12 @@ final class CacheEntry {
     self.url = url
     self.dataURL = dataURL
     self.metaURL = metaURL
-    loadMeta()
   }
 
   deinit {
+    if metaDirty {
+      persistMeta(force: true)
+    }
     try? readHandle?.close()
     try? writeHandle?.close()
   }
@@ -168,12 +184,14 @@ final class CacheEntry {
   var contentLength: Int64? {
     lock.lock()
     defer { lock.unlock() }
+    ensureLoaded()
     return storedContentLength
   }
 
   var contentType: String? {
     lock.lock()
     defer { lock.unlock() }
+    ensureLoaded()
     return storedContentType
   }
 
@@ -187,6 +205,8 @@ final class CacheEntry {
     try? writeHandle?.close()
     readHandle = nil
     writeHandle = nil
+    loaded = true
+    metaDirty = false
     ranges = []
     storedContentLength = nil
     storedContentType = nil
@@ -195,6 +215,7 @@ final class CacheEntry {
   func setContentInfo(length: Int64?, type: String?) {
     lock.lock()
     defer { lock.unlock() }
+    ensureLoaded()
     if let length, storedContentLength != length {
       // A changed length means the remote file changed: drop stale ranges.
       if storedContentLength != nil {
@@ -205,7 +226,7 @@ final class CacheEntry {
     if let type {
       storedContentType = type
     }
-    persistMeta()
+    persistMeta(force: true)
   }
 
   /// Returns cached bytes starting exactly at `offset` (up to `maxLength`,
@@ -213,6 +234,7 @@ final class CacheEntry {
   func read(at offset: Int64, maxLength: Int) -> Data? {
     lock.lock()
     defer { lock.unlock() }
+    ensureLoaded()
     guard let range = ranges.first(where: { $0.contains(offset) }) else {
       return nil
     }
@@ -236,6 +258,7 @@ final class CacheEntry {
     guard !data.isEmpty else { return }
     lock.lock()
     defer { lock.unlock() }
+    ensureLoaded()
     if writeHandle == nil {
       if !FileManager.default.fileExists(atPath: dataURL.path) {
         FileManager.default.createFile(atPath: dataURL.path, contents: nil)
@@ -247,7 +270,7 @@ final class CacheEntry {
       try handle.seek(toOffset: UInt64(offset))
       try handle.write(contentsOf: data)
       insertRange(offset..<offset + Int64(data.count))
-      persistMeta()
+      persistMeta(force: false)
     } catch {
       // Disk write failed (full disk, cleared cache): playback continues from
       // network; the range simply isn't recorded.
@@ -268,7 +291,10 @@ final class CacheEntry {
     ranges = merged.sorted { $0.lowerBound < $1.lowerBound }
   }
 
-  private func loadMeta() {
+  // Callers hold `lock`.
+  private func ensureLoaded() {
+    guard !loaded else { return }
+    loaded = true
     guard let data = try? Data(contentsOf: metaURL),
           let meta = try? JSONDecoder().decode(Meta.self, from: data),
           meta.url == url.absoluteString,
@@ -290,7 +316,11 @@ final class CacheEntry {
   }
 
   // Callers hold `lock`.
-  private func persistMeta() {
+  private func persistMeta(force: Bool) {
+    metaDirty = true
+    guard force || Date().timeIntervalSince(lastPersist) > 1 else { return }
+    lastPersist = Date()
+    metaDirty = false
     let meta = Meta(
       url: url.absoluteString,
       contentLength: storedContentLength,

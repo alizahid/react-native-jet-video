@@ -18,9 +18,9 @@ final class PlayerEngine {
 
   private(set) var status: PlaybackStatus = .idle
   private(set) var sourceUri: String?
-  /// True while the item is torn down because the view is detached from any
-  /// window (covered screen in a navigation stack). The source and resume
-  /// position are kept so `wake()` can rebuild transparently.
+  /// True while the item is torn down (view off-window, or invisible in a
+  /// list). The source and resume position are kept so `wake()` can rebuild
+  /// transparently.
   private(set) var isHibernated = false
 
   private var currentSource: VideoSource?
@@ -67,10 +67,19 @@ final class PlayerEngine {
   /// main thread) and calls `proceed` once it's safe to render audio.
   var willPlay: ((@escaping () -> Void) -> Void)?
 
+  /// Whether a rate change made outside this engine's API (AVKit playback
+  /// controls) should be attributed to the user. Otherwise it's the system
+  /// (an audio interruption, backgrounding).
+  var isUserControlled: (() -> Bool)?
+
   /// Monotonic token for in-flight play intents: a pause or source change
   /// after play() was called must win over the (possibly async) session
   /// configuration completing.
   private var playIntent = 0
+
+  /// The rate this engine last asked for. A rate change that contradicts it
+  /// came from outside: AVKit chrome (user), or the system.
+  private var expectedPlaying = false
 
   /// While set, an externally-initiated pause is immediately reverted — AVKit
   /// implicitly pauses the player during fullscreen present/dismiss, which
@@ -94,19 +103,33 @@ final class PlayerEngine {
 
   private var itemStatusObservation: NSKeyValueObservation?
   private var timeControlObservation: NSKeyValueObservation?
+  private var rateObservation: NSKeyValueObservation?
   private var timeObserverToken: Any?
   private var endObserver: NSObjectProtocol?
   // Strong: the asset's resourceLoader delegate is weakly referenced by AVFoundation.
   private var resourceLoader: CachingResourceLoader?
 
   init() {
-    player.automaticallyWaitsToMinimizeStalling = true
+    // Ends are handled in itemDidPlayToEnd: a loop seeks without the rate
+    // ever dropping (no paused/playing flicker between iterations), and a
+    // one-shot pauses through this engine so the pause is never mistaken
+    // for an external one.
+    player.actionAtItemEnd = .none
+    // `rate` KVO fires synchronously on the thread that changed it (main for
+    // AVKit's implicit pauses), so a held pause is reverted before the audio
+    // pipeline has drained — no gap, unlike reacting to timeControlStatus a
+    // main-queue hop later.
+    rateObservation = player.observe(\.rate) { [weak self] player, _ in
+      let rate = player.rate
+      if Thread.isMainThread {
+        self?.rateChanged(to: rate)
+      } else {
+        DispatchQueue.main.async { self?.rateChanged(to: rate) }
+      }
+    }
     timeControlObservation = player.observe(\.timeControlStatus) { [weak self] _, _ in
       DispatchQueue.main.async {
         guard let self else { return }
-        if self.transitionHold, !self.reachedEnd, self.player.timeControlStatus == .paused {
-          self.player.play()
-        }
         self.applyBufferPolicy()
         self.recomputeStatus()
       }
@@ -143,6 +166,7 @@ final class PlayerEngine {
     // engine was playing would silently start the NEW source the moment it
     // loads — at any visibility, without any play() call. A source change
     // always starts paused; autoplay/coordinator decide from there.
+    expectedPlaying = false
     player.pause()
 
     detachItem()
@@ -165,7 +189,8 @@ final class PlayerEngine {
 
   /// Tears down the AVPlayerItem (buffers, resource loader, decoder claims)
   /// while keeping the source and playhead so `wake()` can rebuild. Called
-  /// when the view leaves the window — a covered screen costs ~nothing.
+  /// when the view leaves the window or scrolls out of view — an invisible
+  /// video costs ~nothing.
   func hibernate() {
     guard !isHibernated, player.currentItem != nil else { return }
     resumeTime = isLiveStream ? 0 : currentTime
@@ -180,10 +205,6 @@ final class PlayerEngine {
     isHibernated = false
     guard let source = currentSource, let url = URL(string: source.uri) else { return }
     attachItem(source: source, url: url)
-    if resumeTime > 0.1 {
-      player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
-    }
-    resumeTime = 0
     // An engine that hibernated in .error has a fresh item now — report it as
     // loading so readiness can transition normally (and the coordinator
     // doesn't burn a retry on an already-rebuilt item).
@@ -207,18 +228,33 @@ final class PlayerEngine {
   }
 
   private func detachItem() {
+    attachGeneration += 1
     detachItemObservers()
     player.replaceCurrentItem(with: nil)
     resourceLoader?.invalidate()
     resourceLoader = nil
   }
 
+  /// Bumped by every attach/detach so an attach deferred behind the audio
+  /// session's initial configuration is dropped if the source changed or the
+  /// engine hibernated in the meantime.
+  private var attachGeneration = 0
+
   private func attachItem(source: VideoSource, url: URL) {
+    attachGeneration += 1
+    let generation = attachGeneration
+    AudioSessionManager.shared.whenConfigured { [weak self] in
+      guard let self, generation == attachGeneration else { return }
+      attachItemNow(source: source, url: url)
+    }
+  }
+
+  private func attachItemNow(source: VideoSource, url: URL) {
     let asset: AVURLAsset
     if source.cache ?? true, let assetURL = CachingResourceLoader.assetURL(for: url) {
       let loader = CachingResourceLoader(originalURL: url, headers: source.headers ?? [:])
       asset = AVURLAsset(url: assetURL)
-      asset.resourceLoader.setDelegate(loader, queue: loader.queue)
+      asset.resourceLoader.setDelegate(loader, queue: CachingResourceLoader.queue)
       resourceLoader = loader
     } else {
       var options: [String: Any] = [:]
@@ -230,6 +266,11 @@ final class PlayerEngine {
     let item = AVPlayerItem(asset: asset)
     attachObservers(to: item)
     player.replaceCurrentItem(with: item)
+    // Waking from hibernation restores the playhead (zero everywhere else).
+    if resumeTime > 0.1 {
+      player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
+    }
+    resumeTime = 0
     applyBufferPolicy()
   }
 
@@ -251,6 +292,7 @@ final class PlayerEngine {
         reachedEnd = false
         player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
       }
+      expectedPlaying = true
       player.play()
     }
     if let willPlay {
@@ -264,6 +306,7 @@ final class PlayerEngine {
     playIntent += 1
     transitionHold = false
     pendingReason = reason
+    expectedPlaying = false
     player.pause()
   }
 
@@ -353,6 +396,20 @@ final class PlayerEngine {
 
   // MARK: - State machine
 
+  /// A rate change this engine didn't ask for. Held transitions revert it on
+  /// the spot; otherwise it's attributed (user vs system) for the status
+  /// event so the coordinator can respect a pause made on AVKit's controls.
+  private func rateChanged(to rate: Float) {
+    let playing = rate != 0
+    guard playing != expectedPlaying else { return }
+    if !playing, transitionHold, !reachedEnd {
+      player.playImmediately(atRate: 1)
+      return
+    }
+    expectedPlaying = playing
+    pendingReason = isUserControlled?() == true ? .user : .system
+  }
+
   private func itemStatusChanged(for item: AVPlayerItem) {
     switch item.status {
     case .readyToPlay:
@@ -391,11 +448,18 @@ final class PlayerEngine {
 
   private func itemDidPlayToEnd() {
     if loop {
-      pendingReason = .system
       player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .positiveInfinity)
-      player.play()
+      // Belt and braces: should the rate still drop at the end, restart
+      // unless the user paused right there.
+      if player.rate == 0, pendingReason != .user {
+        expectedPlaying = true
+        player.play()
+      }
     } else {
       reachedEnd = true
+      expectedPlaying = false
+      pendingReason = .system
+      player.pause()
       transition(to: .ended, reason: .system)
     }
     delegate?.engineDidPlayToEnd(self)

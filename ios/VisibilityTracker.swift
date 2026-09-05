@@ -9,9 +9,15 @@ enum VisibilityTracker {
   /// `.vertical`/`.horizontal` measure coverage along that axis only, so
   /// displacement on the other axis doesn't reduce the fraction while any
   /// part of the view remains on screen.
+  ///
+  /// A view whose screen sits under a covering modal presentation (page
+  /// sheet, form sheet, full screen) counts as invisible, unless
+  /// `ignorePresentation` — UIKit leaves the presenting view in the window,
+  /// so geometry alone would keep a feed playing under a sheet.
   static func visibleFraction(
     of view: UIView,
-    axis: VisibilityAxis = .both
+    axis: VisibilityAxis = .both,
+    ignorePresentation: Bool = false
   ) -> (fraction: Double, windowRect: CGRect) {
     guard let window = view.window, !view.isHidden, view.alpha > 0.01 else {
       return (0, .zero)
@@ -23,6 +29,9 @@ enum VisibilityTracker {
     }
 
     let windowRect = view.convert(bounds, to: nil)
+    if !ignorePresentation, isCoveredByPresentation(view) {
+      return (0, windowRect)
+    }
     var visible = bounds
     var current: UIView = view
 
@@ -56,5 +65,22 @@ enum VisibilityTracker {
       fraction = Double((visible.width * visible.height) / area)
     }
     return (min(1, max(0, fraction)), windowRect)
+  }
+
+  private static func isCoveredByPresentation(_ view: UIView) -> Bool {
+    // `presentedViewController` is forwarded from ancestors, so the nearest
+    // controller answers for its whole presentation layer.
+    guard let presented = view.nearestViewController?.presentedViewController,
+          !presented.isBeingDismissed,
+          !(presented is UIAlertController) else {
+      return false
+    }
+    switch presented.modalPresentationStyle {
+    case .overFullScreen, .overCurrentContext, .popover, .custom, .none:
+      // Transparent or partial presentations leave the content in view.
+      return false
+    default:
+      return true
+    }
   }
 }

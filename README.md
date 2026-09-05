@@ -76,10 +76,11 @@ If your feed cells swipe **horizontally** for actions (upvote, dismiss, reveal b
 
 Video feeds are memory-hungry by default; the library keeps them flat no matter how deep your app goes:
 
+- **Only visible videos hold a player.** A mounted cell that isn't on screen (FlashList's render-ahead, a plain ScrollView's off-screen content, a screen under a page sheet) releases its whole native player stack after a few hundred milliseconds and shows its poster; it's rebuilt when it scrolls back into view. Of the visible `whenVisible` videos, only a handful stay live besides the one playing, so a grid of thumbnails never approaches the platform's decoder limit.
 - **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed.
 - **Covered screens hibernate.** When a screen with videos is pushed under another (navigation stacks, full-screen modals), each video releases its entire native player stack — buffers, network connections, decoder sessions — keeping only the source, playhead, and poster. Navigate back and it rebuilds transparently (from the disk cache when possible) and resumes where it left off. A 10-deep stack of video feeds costs roughly the same memory as one.
 - **Transient failures self-heal.** If a visible video errors (decoder pressure, flaky network), it's automatically rebuilt and retried a bounded number of times instead of staying black.
-- **Posters are downsampled** to screen-size pixels at decode, so full-resolution poster URLs don't balloon memory.
+- **Posters are downsampled** to screen-width pixels at decode, so full-resolution poster URLs don't balloon memory.
 
 ## Installation
 
@@ -144,12 +145,12 @@ Instead, playback is **uncontrolled** with a strict precedence: user intent > co
 
 The library never interrupts other apps' audio unless you ask it to:
 
-- **Muted playback** uses the `ambient` audio category with mixing — a muted feed never stops the user's music. (This is the classic video-library bug; it's handled.)
-- **Muted playback with PiP enabled** uses the `playback` category (PiP requires it) with mixing, and never explicitly activates the session — an inactive session can't interrupt anyone.
-- **Unmuted playback** escalates to the `playback` category with options from `audioMixMode`:
+- **Muted playback** always mixes with other audio — a muted feed never stops the user's music. (This is the classic video-library bug; it's handled.)
+- **Unmuted playback** uses the options from `audioMixMode`:
   - `'mixWithOthers'` (default): the user's music keeps playing alongside your video.
   - `'duckOthers'`: other audio ducks under your video.
   - `'doNotMix'`: other audio is interrupted (the traditional video-app behavior — opt-in).
+- **One category, checked before every play.** The session is always `playback` (what PiP and audible playback need) — there's no category switch when a video unmutes, so no audio glitch. And the *live* session state is verified right before playback starts, not a cached copy: if another library in your app reconfigures the session, the next play still can't interrupt anyone.
 - **Session work never blocks the UI.** Audio-session calls are XPC round-trips that can stall for hundreds of milliseconds; the library runs them on a background queue and sequences playback starts behind them — mounting a screen full of videos costs the main thread nothing.
 - **Now Playing is never claimed.** The system fullscreen/inline controllers are configured not to register your app as the Now Playing app (which would forcibly interrupt other audio).
 

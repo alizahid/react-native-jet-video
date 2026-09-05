@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import UIKit
 
@@ -11,9 +12,13 @@ enum AutoplayOverride {
   case userPlaying
 }
 
-/// Elects, per group, the single most-visible `whenVisible` video and keeps it
-/// playing while pausing all others. Fully native: works with any scroll
-/// container (FlashList, ScrollView, nested scrolls) with no JS wiring.
+/// Tracks the visibility of every mounted video in a group and, from that:
+/// - elects the single most-visible `whenVisible` video and keeps it playing
+///   while pausing all others (fully native: works with any scroll container
+///   with no JS wiring), and
+/// - decides which videos may hold a live player item at all — invisible
+///   ones release theirs, and only a handful of visible non-winners stay
+///   warm — so a long list costs a few players, not one per mounted cell.
 /// Main-thread only.
 final class PlaybackCoordinator {
   /// Global eligibility threshold — a view must be at least this visible to
@@ -29,6 +34,16 @@ final class PlaybackCoordinator {
   /// How much closer to the screen centre (normalized per-axis) a challenger
   /// must be to dethrone an incumbent of comparable visibility.
   static let centerMargin: Double = 0.05
+  /// Visible `whenVisible` videos that keep a live item, winner included.
+  /// The rest show their poster until they rank high enough. Well under
+  /// the platform's concurrent decoder limit.
+  // ponytail: fixed cap; make it configurable if a grid layout needs more.
+  static let maxLiveItems = 6
+  /// Consecutive ticks (~100ms each) a view must be unwanted before its item
+  /// is released, or wanted before it's rebuilt — so a fling through a list
+  /// doesn't build an item for every cell that flashes past.
+  static let hibernateTicks = 3
+  static let wakeTicks = 2
 
   private static var groups: [String: PlaybackCoordinator] = [:]
 
@@ -42,50 +57,66 @@ final class PlaybackCoordinator {
     return coordinator
   }
 
+  private struct Tracking {
+    var rect: CGRect = .null
+    var fraction: Double = -1
+    var offscreenTicks = 0
+    var retries = 0
+    var wantedTicks = 0
+    var unwantedTicks = 0
+  }
+
+  private struct Info {
+    let view: HybridVideoView
+    let fraction: Double
+    let rect: CGRect
+    let centerDistance: Double
+    var coordinated: Bool { view.autoplayMode == .whenvisible }
+  }
+
   private let members = NSHashTable<HybridVideoView>.weakObjects()
   private var displayLink: CADisplayLink?
   private weak var winner: HybridVideoView?
   private var challengerId: ObjectIdentifier?
   private var challengerTicks = 0
-  private var lastRects: [ObjectIdentifier: CGRect] = [:]
-  private var lastFractions: [ObjectIdentifier: Double] = [:]
-  private var offscreenTicks: [ObjectIdentifier: Int] = [:]
-  private var retryCounts: [ObjectIdentifier: Int] = [:]
+  private var tracking: [ObjectIdentifier: Tracking] = [:]
   private var dirty = true
   private var backgrounded = false
-  private var lifecycleObservers: [NSObjectProtocol] = []
+  private var observers: [NSObjectProtocol] = []
 
   init() {
-    lifecycleObservers.append(
-      NotificationCenter.default.addObserver(
-        forName: UIApplication.didEnterBackgroundNotification,
-        object: nil,
-        queue: .main
-      ) { [weak self] _ in
-        guard let self else { return }
-        backgrounded = true
-        for view in members.allObjects where !view.isInPictureInPicture {
-          pauseIfPlaying(view)
-        }
-        displayLink?.isPaused = true
+    let center = NotificationCenter.default
+    observers.append(center.addObserver(
+      forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      guard let self else { return }
+      backgrounded = true
+      for view in members.allObjects where view.autoplayMode == .whenvisible && !view.isInPictureInPicture {
+        pauseIfPlaying(view)
       }
-    )
-    lifecycleObservers.append(
-      NotificationCenter.default.addObserver(
-        forName: UIApplication.didBecomeActiveNotification,
-        object: nil,
-        queue: .main
-      ) { [weak self] _ in
-        guard let self else { return }
-        backgrounded = false
-        dirty = true
-        displayLink?.isPaused = false
-      }
-    )
+      displayLink?.isPaused = true
+    })
+    observers.append(center.addObserver(
+      forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      guard let self else { return }
+      backgrounded = false
+      dirty = true
+      displayLink?.isPaused = false
+    })
+    // A phone call or Siri pauses the player behind our back; once it ends,
+    // re-run the election so the winner resumes instead of sitting paused.
+    observers.append(center.addObserver(
+      forName: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance(), queue: .main
+    ) { [weak self] note in
+      guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+      self?.dirty = true
+    })
   }
 
   deinit {
-    for observer in lifecycleObservers {
+    for observer in observers {
       NotificationCenter.default.removeObserver(observer)
     }
     displayLink?.invalidate()
@@ -99,11 +130,7 @@ final class PlaybackCoordinator {
     // ObjectIdentifier is a raw pointer: a new view allocated at a dead
     // view's address must not inherit its stale tracking (a spent retry
     // budget would silently disable error recovery for the new view).
-    let id = ObjectIdentifier(view)
-    lastRects[id] = nil
-    lastFractions[id] = nil
-    offscreenTicks[id] = nil
-    retryCounts[id] = nil
+    tracking[ObjectIdentifier(view)] = nil
     dirty = true
     startDisplayLinkIfNeeded()
   }
@@ -111,11 +138,7 @@ final class PlaybackCoordinator {
   func unregister(_ view: HybridVideoView) {
     guard members.contains(view) else { return }
     members.remove(view)
-    let id = ObjectIdentifier(view)
-    lastRects[id] = nil
-    lastFractions[id] = nil
-    offscreenTicks[id] = nil
-    retryCounts[id] = nil
+    tracking[ObjectIdentifier(view)] = nil
     if winner === view {
       winner = nil
     }
@@ -128,6 +151,7 @@ final class PlaybackCoordinator {
   // MARK: - User intent
 
   func noteUserPlay(_ view: HybridVideoView) {
+    guard view.autoplayMode == .whenvisible else { return }
     view.autoplayOverride = .userPlaying
     if winner !== view {
       if let old = winner {
@@ -139,6 +163,7 @@ final class PlaybackCoordinator {
   }
 
   func noteUserPause(_ view: HybridVideoView) {
+    guard view.autoplayMode == .whenvisible else { return }
     view.autoplayOverride = .userPaused
     if winner === view {
       winner = nil
@@ -148,7 +173,7 @@ final class PlaybackCoordinator {
 
   func noteSourceChanged(_ view: HybridVideoView) {
     view.autoplayOverride = .none
-    retryCounts[ObjectIdentifier(view)] = nil
+    tracking[ObjectIdentifier(view)]?.retries = 0
     dirty = true
   }
 
@@ -170,15 +195,12 @@ final class PlaybackCoordinator {
   private func stopDisplayLink() {
     displayLink?.invalidate()
     displayLink = nil
-    lastRects.removeAll()
-    lastFractions.removeAll()
-    offscreenTicks.removeAll()
-    retryCounts.removeAll()
+    tracking.removeAll()
     challengerId = nil
     challengerTicks = 0
   }
 
-  // MARK: - Election
+  // MARK: - Tick
 
   @objc private func handleTick() {
     guard !backgrounded else { return }
@@ -187,88 +209,157 @@ final class PlaybackCoordinator {
       stopDisplayLink()
       return
     }
+    if let current = winner, current.autoplayMode != .whenvisible {
+      winner = nil
+      dirty = true
+    }
+    // While one of ours is fullscreen, everything else keeps its natural
+    // visibility: treating the feed as covered would hibernate its cells,
+    // and rebuilding them all during the exit animation is the jank we're
+    // avoiding.
+    let ignorePresentation = active.contains { $0.isFullscreen }
 
     var rectsChanged = false
-    var infos: [(view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)] = []
+    var infos: [Info] = []
     infos.reserveCapacity(active.count)
 
     for view in active {
       let id = ObjectIdentifier(view)
-      let (fraction, rect) = VisibilityTracker.visibleFraction(of: view.view, axis: view.visibilityAxis)
+      var track = tracking[id] ?? Tracking()
+      let (fraction, rect) = VisibilityTracker.visibleFraction(
+        of: view.view,
+        axis: view.visibilityAxis,
+        ignorePresentation: ignorePresentation
+      )
       let centerDistance = Self.centerDistance(of: rect, in: view.view.window, axis: view.visibilityAxis)
 
-      if lastRects[id] != rect {
-        lastRects[id] = rect
+      if track.rect != rect {
+        track.rect = rect
         rectsChanged = true
       }
-      if abs((lastFractions[id] ?? -1) - fraction) > 0.01 {
-        lastFractions[id] = fraction
+      if abs(track.fraction - fraction) > 0.01 {
+        track.fraction = fraction
         view.onVisibilityChange?(fraction)
       }
+      track.offscreenTicks = fraction <= 0.001 ? track.offscreenTicks + 1 : 0
 
-      // A user-paused video that scrolls fully away gets a fresh start: coming
-      // back on screen re-enables autoplay, matching familiar feed behavior.
-      if fraction <= 0.001 {
-        offscreenTicks[id, default: 0] += 1
-        if offscreenTicks[id, default: 0] >= 2, view.autoplayOverride == .userPaused {
+      if view.autoplayMode == .whenvisible {
+        // A user-paused video that scrolls fully away gets a fresh start:
+        // coming back on screen re-enables autoplay, matching familiar feed
+        // behavior.
+        if track.offscreenTicks >= 2, view.autoplayOverride == .userPaused {
           view.autoplayOverride = .none
           dirty = true
         }
-      } else {
-        offscreenTicks[id] = 0
-      }
 
-      // A visible errored video gets rebuilt (bounded retries): transient
-      // failures like decoder-session pressure from a heavy feed must not
-      // leave a black cell on screen.
-      if view.engine.status == .error, fraction >= Self.threshold(for: view),
-         retryCounts[id, default: 0] < Self.maxErrorRetries {
-        retryCounts[id, default: 0] += 1
-        view.engine.retry()
-        dirty = true
-      }
-
-      // A user-played video that drops below the threshold loses its override:
-      // audio must never continue for an offscreen video (outside PiP).
-      if view.autoplayOverride == .userPlaying, fraction < Self.threshold(for: view) {
-        view.autoplayOverride = .none
-        pauseIfPlaying(view)
-        if winner === view {
-          winner = nil
+        // A visible errored video gets rebuilt (bounded retries): transient
+        // failures like decoder-session pressure from a heavy feed must not
+        // leave a black cell on screen.
+        if view.engine.status == .error, fraction >= Self.threshold(for: view),
+           track.retries < Self.maxErrorRetries {
+          track.retries += 1
+          view.engine.retry()
+          dirty = true
         }
-        dirty = true
+
+        // A user-played video that drops below the threshold loses its
+        // override: audio must never continue for an offscreen video
+        // (outside PiP).
+        if view.autoplayOverride == .userPlaying, fraction < Self.threshold(for: view) {
+          view.autoplayOverride = .none
+          pauseIfPlaying(view)
+          if winner === view {
+            winner = nil
+          }
+          dirty = true
+        }
       }
 
-      infos.append((view, fraction, rect, centerDistance))
+      tracking[id] = track
+      infos.append(Info(view: view, fraction: fraction, rect: rect, centerDistance: centerDistance))
     }
 
-    guard rectsChanged || dirty else { return }
-    dirty = false
+    if rectsChanged || dirty {
+      dirty = false
+      runElection(infos: infos, active: active)
 
-    runElection(infos: infos, active: active)
+      // Safety net: nothing but the winner may ever play in a coordinated
+      // group. Playback can start outside the election's control (state
+      // races, system behaviors) — e.g. AVPlayer preserves its rate across
+      // a source swap, so before this sweep a recycled playing cell would
+      // restart its NEW source at any visibility, and the election would
+      // never notice a playing non-winner.
+      for info in infos
+      where info.coordinated
+        && info.view !== winner
+        && !info.view.isFullscreen
+        && !info.view.isInPictureInPicture {
+        pauseIfPlaying(info.view)
+      }
+    }
 
-    // Safety net: nothing but the winner may ever play in a coordinated
-    // group. Playback can start outside the election's control (state races,
-    // system behaviors) — e.g. AVPlayer preserves its rate across a source
-    // swap, so before this sweep a recycled playing cell would restart its
-    // NEW source at any visibility, and the election would never notice a
-    // playing non-winner.
-    for info in infos
-    where info.view !== winner
-      && !info.view.isFullscreen
-      && !info.view.isInPictureInPicture {
-      pauseIfPlaying(info.view)
+    updateLiveItems(infos: infos)
+  }
+
+  // MARK: - Item liveness
+
+  /// Decides which views hold a live AVPlayerItem: the winner, anything
+  /// fullscreen/PiP, non-coordinated videos that are visible or playing, and
+  /// the best-ranked visible coordinated videos up to `maxLiveItems`.
+  /// Everything else hibernates (poster only) after a few ticks.
+  private func updateLiveItems(infos: [Info]) {
+    var budget = Self.maxLiveItems - 1
+    let ranked = infos
+      .filter { $0.coordinated && $0.view !== winner && $0.fraction > 0.001 }
+      .sorted { a, b in
+        a.fraction != b.fraction ? a.fraction > b.fraction : a.centerDistance < b.centerDistance
+      }
+    var wantedIds = Set<ObjectIdentifier>()
+    for info in ranked where budget > 0 {
+      wantedIds.insert(ObjectIdentifier(info.view))
+      budget -= 1
+    }
+
+    for info in infos {
+      let view = info.view
+      let id = ObjectIdentifier(view)
+      let wanted: Bool
+      if view === winner || view.isFullscreen || view.isInPictureInPicture {
+        wanted = true
+      } else if info.coordinated {
+        wanted = wantedIds.contains(id)
+      } else {
+        // Never touch a non-coordinated video that's playing: only the app
+        // decides when those stop.
+        wanted = info.fraction > 0.001 || isPlaying(view)
+      }
+      guard var track = tracking[id] else { continue }
+      if wanted {
+        track.wantedTicks += 1
+        track.unwantedTicks = 0
+        if track.wantedTicks >= Self.wakeTicks {
+          view.setItemLive(true)
+        }
+      } else {
+        track.unwantedTicks += 1
+        track.wantedTicks = 0
+        if track.unwantedTicks >= Self.hibernateTicks {
+          view.setItemLive(false)
+        }
+      }
+      tracking[id] = track
     }
   }
 
-  private func runElection(
-    infos: [(view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)],
-    active: [HybridVideoView]
-  ) {
+  // MARK: - Election
+
+  private func runElection(infos: [Info], active: [HybridVideoView]) {
+    let coordinated = active.filter { $0.autoplayMode == .whenvisible }
+
     // A video in PiP suspends elections for its whole group: nothing else in
     // the group may play alongside it.
-    if active.contains(where: { $0.isInPictureInPicture }) {
-      for view in active where !view.isInPictureInPicture {
+    if coordinated.contains(where: { $0.isInPictureInPicture }) {
+      for view in coordinated where !view.isInPictureInPicture {
         pauseIfPlaying(view)
       }
       winner = nil
@@ -277,15 +368,18 @@ final class PlaybackCoordinator {
       return
     }
 
-    if let forced = active.first(where: { $0.autoplayOverride == .userPlaying }) {
+    if let forced = coordinated.first(where: { $0.autoplayOverride == .userPlaying }) {
       challengerId = nil
       challengerTicks = 0
       crown(forced)
       return
     }
 
+    // A fullscreen video stays eligible regardless of its inline rect (which
+    // may be covered by the presentation itself).
     let eligible = infos.filter { info in
-      info.fraction >= Self.threshold(for: info.view)
+      info.coordinated
+        && (info.view.isFullscreen || info.fraction >= Self.threshold(for: info.view))
         && info.view.autoplayOverride != .userPaused
         && info.view.engine.sourceUri != nil
         && info.view.engine.status != .error
@@ -304,10 +398,7 @@ final class PlaybackCoordinator {
     // Ranking: a decisively more-visible video wins; when visibility is
     // comparable (within hysteresis), the video closest to the screen centre
     // wins. Final ties break topmost, then leftmost.
-    func outranks(
-      _ a: (view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double),
-      _ b: (view: HybridVideoView, fraction: Double, rect: CGRect, centerDistance: Double)
-    ) -> Bool {
+    func outranks(_ a: Info, _ b: Info) -> Bool {
       if a.fraction > b.fraction + Self.hysteresis { return true }
       if b.fraction > a.fraction + Self.hysteresis { return false }
       if a.centerDistance != b.centerDistance { return a.centerDistance < b.centerDistance }
@@ -424,12 +515,13 @@ final class PlaybackCoordinator {
     }
   }
 
+  private func isPlaying(_ view: HybridVideoView) -> Bool {
+    view.engine.status == .playing || view.engine.status == .buffering
+  }
+
   private func pauseIfPlaying(_ view: HybridVideoView) {
-    switch view.engine.status {
-    case .playing, .buffering:
+    if isPlaying(view) {
       view.engine.pause(reason: .coordinator)
-    default:
-      break
     }
   }
 }

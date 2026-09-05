@@ -88,11 +88,12 @@ final class PosterView: UIImageView {
     task.resume()
   }
 
-  /// Decodes capped at screen-size pixels: a feed of full-resolution posters
-  /// would otherwise dominate memory (a 4000px image is ~35MB+ decoded).
+  /// Decodes capped at screen-width pixels: a feed of full-resolution posters
+  /// would otherwise dominate memory (a 4000px image is ~35MB+ decoded, and
+  /// even a screen-height cap is ~15MB per 16:9 poster — a dozen mounted
+  /// cells is most of a memory budget).
   private static func decodeDownsampled(_ data: Data) -> UIImage? {
-    let bounds = UIScreen.main.bounds.size
-    let maxPixelSize = max(bounds.width, bounds.height) * UIScreen.main.scale
+    let maxPixelSize = UIScreen.main.bounds.width * UIScreen.main.scale
     let options: [CFString: Any] = [
       kCGImageSourceCreateThumbnailFromImageAlways: true,
       kCGImageSourceCreateThumbnailWithTransform: true,

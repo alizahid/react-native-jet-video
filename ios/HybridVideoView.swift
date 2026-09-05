@@ -115,7 +115,7 @@ class HybridVideoView: HybridVideoViewSpec {
   var autoplayMode: AutoplayMode = .off {
     didSet {
       guard autoplayMode != oldValue else { return }
-      updateCoordinatorRegistration()
+      coordinator?.noteStateInvalidated()
       applyAutoplay()
     }
   }
@@ -127,11 +127,7 @@ class HybridVideoView: HybridVideoViewSpec {
       // reconfigures the audio graph mid-stream and audibly pops. The config
       // runs off-main; unmute once it lands (unless the user flipped back).
       if !muted, engine.status == .playing || engine.status == .buffering {
-        AudioSessionManager.shared.willPlay(
-          muted: false,
-          mixMode: audioMixMode,
-          requiresPlaybackCategory: allowsPictureInPicture
-        ) { [weak self] in
+        AudioSessionManager.shared.prepare(muted: false, mixMode: audioMixMode, activate: true) { [weak self] in
           guard let self, !self.muted else { return }
           engine.isMuted = false
         }
@@ -339,9 +335,9 @@ class HybridVideoView: HybridVideoViewSpec {
   func startPictureInPicture() throws -> Promise<Void> {
     let promise = Promise<Void>()
     DispatchQueue.main.async { [self] in
-      updatePiPSetup()
-      AudioSessionManager.shared.willStartPictureInPicture(muted: muted, mixMode: audioMixMode) { [weak self] in
+      AudioSessionManager.shared.prepare(muted: muted, mixMode: audioMixMode, activate: true) { [weak self] in
         guard let self else { return }
+        updatePiPSetup()
         pipManager.start { error in
           if let error {
             promise.reject(withError: error)
@@ -401,17 +397,20 @@ class HybridVideoView: HybridVideoViewSpec {
         proceed()
         return
       }
-      // PiP setup rides the play path: the playing video is the only one
-      // auto-PiP can pick up, and it must exist before the app backgrounds.
-      updatePiPSetup()
-      AudioSessionManager.shared.willPlay(
-        muted: muted,
-        mixMode: audioMixMode,
-        // PiP (including auto-PiP on backgrounding) requires the .playback
-        // category to be in place while the video plays.
-        requiresPlaybackCategory: allowsPictureInPicture,
-        completion: proceed
-      )
+      AudioSessionManager.shared.prepare(muted: muted, mixMode: audioMixMode, activate: !muted) { [weak self] in
+        // PiP setup rides the play path: the playing video is the only one
+        // auto-PiP can pick up, and it must exist before the app backgrounds.
+        // After the session is configured — the controller registers with
+        // media services, and must never do so on the default category.
+        self?.updatePiPSetup()
+        proceed()
+      }
+    }
+    // Pauses/plays from AVKit chrome (fullscreen, embedded controls) are the
+    // user's; anything else that touches the rate behind our back is system.
+    engine.isUserControlled = { [weak self] in
+      guard let self else { return false }
+      return isFullscreen || hasEmbeddedControls
     }
   }
 
@@ -567,9 +566,9 @@ class HybridVideoView: HybridVideoViewSpec {
     } else {
       hibernateWorkItem?.cancel()
       hibernateWorkItem = nil
-      if engine.isHibernated {
-        engine.wake()
-      }
+      // A hibernated engine is not woken here: the coordinator rebuilds the
+      // items that are actually visible on the reattached screen (a screen
+      // pop would otherwise rebuild every cell of the feed at once).
       // Props (including source) are set before the view joins a window, so
       // autoplay for a still-loading source applies here, not at prop-set.
       if engine.status == .loading {
@@ -594,21 +593,39 @@ class HybridVideoView: HybridVideoViewSpec {
       guard let self else { return }
       hibernateWorkItem = nil
       guard surface.window == nil, !isInPictureInPicture, !isFullscreen else { return }
-      if posterUri != nil {
-        posterView.isHidden = false
-      }
-      engine.hibernate()
-      // Covered screens don't need a live PiP controller either — it's
-      // recreated on the next play.
-      pipManager.teardown()
+      hibernateNow()
     }
     hibernateWorkItem = work
     DispatchQueue.main.asyncAfter(deadline: .now() + Self.hibernateGraceSeconds, execute: work)
   }
 
+  private func hibernateNow() {
+    guard !engine.isHibernated else { return }
+    if posterUri != nil {
+      posterView.isHidden = false
+    }
+    engine.hibernate()
+    // An invisible video doesn't need a live PiP controller either — it's
+    // recreated on the next play.
+    pipManager.teardown()
+  }
+
+  /// Coordinator-driven item liveness for on-window views: invisible (or
+  /// surplus) videos release their player item; wanted ones rebuild it.
+  func setItemLive(_ live: Bool) {
+    if live {
+      if engine.isHibernated {
+        engine.wake()
+      }
+    } else if !isFullscreen, !isInPictureInPicture {
+      hibernateNow()
+    }
+  }
+
   private func updateCoordinatorRegistration() {
-    let shouldRegister =
-      autoplayMode == .whenvisible && surface.window != nil && source != nil
+    // Every on-window video is tracked (for item liveness); only
+    // `whenVisible` ones take part in the election.
+    let shouldRegister = surface.window != nil && source != nil
     if shouldRegister {
       let target = PlaybackCoordinator.coordinator(forGroup: coordinatorGroup)
       if coordinator !== target {
@@ -683,6 +700,18 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
 
 extension HybridVideoView: PlayerEngineDelegate {
   func engine(_ engine: PlayerEngine, didChangeStatus status: PlaybackStatus, reason: PlaybackChangeReason) {
+    // A pause or play the user made on AVKit's controls is user intent just
+    // like the ref methods — the election must not undo it.
+    if reason == .user {
+      switch status {
+      case .paused:
+        coordinator?.noteUserPause(self)
+      case .playing, .buffering:
+        coordinator?.noteUserPlay(self)
+      default:
+        break
+      }
+    }
     onPlaybackStateChange?(PlaybackStateEvent(status: status, reason: reason))
   }
 

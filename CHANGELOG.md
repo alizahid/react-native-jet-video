@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Memory/CPU: only visible videos hold a live player item. Mounted-but-offscreen cells (FlashList render-ahead, ScrollView content, feeds under a page sheet) release their whole player stack and show the poster; visible `whenVisible` videos beyond the playing one are capped at a handful. Posters decode at screen-width instead of screen-height pixels. The disk cache now uses one shared URL session (no per-video session, URLCache disabled), reads metadata lazily off the main thread, and throttles metadata writes and eviction scans.
+- Audio: fixed muted playback stopping the user's music at app launch — the `ambient` category was requested with the movie-playback mode, which it rejects, leaving the default `soloAmbient` for AVPlayer to activate. The session is now always `playback` + mixing (verified against the live session state before every play, so other libraries can't leave a non-mixing category behind), the PiP controller is created only after the session is configured, and unmuting no longer switches categories mid-playback.
+- Election: a pause made on AVKit's controls (fullscreen or embedded) is now a user pause and is no longer force-resumed; playback resumes after an audio interruption (call, Siri) ends; videos under a covering modal presentation (page/form sheet, full screen) count as invisible and pause; loops no longer flicker through a paused state at the boundary.
+- Fullscreen: AVKit's implicit pauses during the enter/exit animations are reverted synchronously (before the audio pipeline drains) instead of a frame later, and the enter transition waits for the fullscreen controller to have a frame — no black flash, freeze, or audio dip on either side.
+
 - Fixed flicker when exiting fullscreen: the inline layer is blanked while
   AVKit owns rendering (no double image behind the shrinking video),
   fullscreen chrome is dropped as the exit starts (no controls flash at the
