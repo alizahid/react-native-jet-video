@@ -35,16 +35,10 @@ class HybridVideoView: HybridVideoViewSpec {
   var lastVisibleFraction: Double = 0
   var isDisplayed: Bool { surface.window != nil && lastVisibleFraction > 0.001 }
   private var coordinator: PlaybackCoordinator?
-  private var hibernateWorkItem: DispatchWorkItem?
   // Playback was interrupted by the window detach itself (screen covered),
   // so reattaching should resume it. Coordinated views are excluded — the
   // election decides who plays.
   private var resumePlaybackOnAttach = false
-
-  /// Grace before tearing the item down on window detach, so transient
-  /// detaches (navigation transitions, interactive-pop cancels, view
-  /// reordering) don't thrash rebuild cycles.
-  private static let hibernateGraceSeconds: TimeInterval = 1.0
 
   var view: UIView { surface }
 
@@ -52,7 +46,6 @@ class HybridVideoView: HybridVideoViewSpec {
   private var resolvedKey: String? { playerKey ?? source?.uri }
 
   deinit {
-    hibernateWorkItem?.cancel()
     if let engine {
       engine.delegate = nil
       PlayerPool.shared.release(engine, from: self)
@@ -341,7 +334,6 @@ class HybridVideoView: HybridVideoViewSpec {
     // continue for an invisible video.
     if !active, surface.window == nil, !isInPictureInPicture {
       engine?.pause(reason: .system)
-      scheduleHibernate()
     }
   }
 
@@ -401,10 +393,9 @@ class HybridVideoView: HybridVideoViewSpec {
     coordinator?.noteStateInvalidated()
     onPictureInPictureChange?(active)
     // PiP ended while the owning screen is covered: nothing re-triggers
-    // didMoveToWindow, so release the item from here.
+    // didMoveToWindow, so pause from here.
     if !active, surface.window == nil, !isFullscreen {
       engine?.pause(reason: .system)
-      scheduleHibernate()
     }
   }
 
@@ -688,7 +679,7 @@ class HybridVideoView: HybridVideoViewSpec {
   /// duplicates (two cells, one key) are left to the coordinator.
   private func adoptSharedLiveEngine() {
     guard engine == nil, mirroredEngine == nil, let key = resolvedKey,
-          let shared = PlayerPool.shared.engine(for: key), !shared.isHibernated,
+          let shared = PlayerPool.shared.engine(for: key),
           let owner = shared.owner,
           owner.view.nearestViewController !== surface.nearestViewController else { return }
     ensureEngine(force: false)
@@ -705,16 +696,14 @@ class HybridVideoView: HybridVideoViewSpec {
       } else if !isInPictureInPicture, !isFullscreen {
         resumePlaybackOnAttach = isPlaying
         engine?.pause(reason: .system)
-        scheduleHibernate()
+        // The player stays live (instant pop-back); the pool's LRU eviction
+        // reclaims it if the slot is needed.
+        pipManager.teardown()
+        PlayerPool.shared.settle()
       }
       dropMirror()
     } else {
-      hibernateWorkItem?.cancel()
-      hibernateWorkItem = nil
       adoptSharedLiveEngine()
-      // A hibernated engine is not woken here: the coordinator rebuilds the
-      // items that are actually visible on the reattached screen (a screen
-      // pop would otherwise rebuild every cell of the feed at once).
       // Props (including source) are set before the view joins a window, so
       // autoplay for a still-loading source applies here, not at prop-set.
       if engine == nil || engine?.status == .loading {
@@ -726,47 +715,6 @@ class HybridVideoView: HybridVideoViewSpec {
       if controls, embeddedController == nil {
         updateControlsSurface()
       }
-    }
-  }
-
-  /// A view that stays off-window past the grace period releases its whole
-  /// AVPlayerItem stack (buffers, resource loader, decoder session) — so a
-  /// deep navigation stack of video feeds costs only posters. The engine
-  /// keeps the source + playhead and rebuilds on reattach.
-  private func scheduleHibernate() {
-    hibernateWorkItem?.cancel()
-    let work = DispatchWorkItem { [weak self] in
-      guard let self else { return }
-      hibernateWorkItem = nil
-      guard surface.window == nil, !isInPictureInPicture, !isFullscreen else { return }
-      hibernateNow()
-    }
-    hibernateWorkItem = work
-    DispatchQueue.main.asyncAfter(deadline: .now() + Self.hibernateGraceSeconds, execute: work)
-  }
-
-  private func hibernateNow() {
-    dropMirror()
-    guard let engine, !engine.isHibernated else { return }
-    if posterUri != nil {
-      posterView.isHidden = false
-    }
-    engine.hibernate()
-    // An invisible video doesn't need a live PiP controller either — it's
-    // recreated on the next play.
-    pipManager.teardown()
-    // A screen transition can push the pool past its cap (both screens'
-    // cells count as displayed mid-animation); settle back once idle.
-    PlayerPool.shared.settle()
-  }
-
-  /// Coordinator-driven item liveness for on-window views: invisible (or
-  /// surplus) videos release their player item; wanted ones lease/rebuild.
-  func setItemLive(_ live: Bool) {
-    if live {
-      ensureEngine(force: false)?.wake()
-    } else if !isFullscreen, !isInPictureInPicture {
-      hibernateNow()
     }
   }
 

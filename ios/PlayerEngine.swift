@@ -29,20 +29,16 @@ final class PlayerEngine {
 
   private(set) var status: PlaybackStatus = .idle
   private(set) var sourceUri: String?
-  /// True while the item is torn down (view off-window, or invisible in a
-  /// list). The source and resume position are kept so `wake()` can rebuild
-  /// transparently.
-  private(set) var isHibernated = false
 
   private var currentSource: VideoSource?
   private var resumeTime: Double = 0
   // The last load event, replayed to a new owner so its JS side learns the
   // duration/size of a video that loaded under a previous view.
   private var lastLoadEvent: LoadEvent?
-  // Set when the loaded item reports an indefinite duration. A live stream
-  // must never be resumed at a wall-clock position after hibernation — the
-  // old offset points into a sliding window that has since moved.
-  private var isLiveStream = false
+  /// Set when the loaded item reports an indefinite duration. A live stream
+  /// must never be resumed at a remembered position — the old offset points
+  /// into a sliding window that has since moved.
+  private(set) var isLiveStream = false
 
   var loop = false
   var isMuted: Bool {
@@ -54,9 +50,6 @@ final class PlayerEngine {
     set { player.volume = Float(newValue) }
   }
   var currentTime: Double {
-    if isHibernated {
-      return resumeTime
-    }
     let time = player.currentTime()
     return time.isValid ? max(0, time.seconds) : 0
   }
@@ -167,14 +160,13 @@ final class PlayerEngine {
   func setSource(_ source: VideoSource?, resumeAt: Double = 0) {
     let uri = source?.uri
     guard uri != sourceUri else {
-      // Same uri re-set (list re-render): keep playback/hibernation state,
+      // Same uri re-set (list re-render): keep playback state,
       // just refresh the stored source so headers/cache flags stay current.
       if source != nil { currentSource = source }
       return
     }
     sourceUri = uri
     currentSource = source
-    isHibernated = false
     resumeTime = resumeAt
     lastLoadEvent = nil
     isLiveStream = false
@@ -203,34 +195,6 @@ final class PlayerEngine {
     transition(to: .loading, reason: .system)
   }
 
-  // MARK: - Hibernation
-
-  /// Tears down the AVPlayerItem (buffers, resource loader, decoder claims)
-  /// while keeping the source and playhead so `wake()` can rebuild. Called
-  /// when the view leaves the window or scrolls out of view — an invisible
-  /// video costs ~nothing.
-  func hibernate() {
-    guard !isHibernated, player.currentItem != nil else { return }
-    resumeTime = isLiveStream ? 0 : currentTime
-    isHibernated = true
-    detachItem()
-  }
-
-  /// Rebuilds the item after hibernation and restores the playhead. The disk
-  /// cache makes this cheap: previously streamed ranges re-serve from disk.
-  func wake() {
-    guard isHibernated else { return }
-    isHibernated = false
-    guard let source = currentSource, let url = URL(string: source.uri) else { return }
-    attachItem(source: source, url: url)
-    // An engine that hibernated in .error has a fresh item now — report it as
-    // loading so readiness can transition normally (and the coordinator
-    // doesn't burn a retry on an already-rebuilt item).
-    if status == .error {
-      transition(to: .loading, reason: .system)
-    }
-  }
-
   /// Re-emits the current load/status state to a delegate that just took
   /// over this engine, so a view adopting a playing video reports it as
   /// loaded and playing instead of idle.
@@ -248,7 +212,6 @@ final class PlayerEngine {
   /// stayed black until its cell recycled.
   func retry() {
     guard status == .error, let source = currentSource, let url = URL(string: source.uri) else { return }
-    isHibernated = false
     resumeTime = 0
     detachItem()
     reachedEnd = false
@@ -266,8 +229,8 @@ final class PlayerEngine {
   }
 
   /// Bumped by every attach/detach so an attach deferred behind the audio
-  /// session's initial configuration is dropped if the source changed or the
-  /// engine hibernated in the meantime.
+  /// session's initial configuration is dropped if the source changed in the
+  /// meantime.
   private var attachGeneration = 0
 
   private func attachItem(source: VideoSource, url: URL) {
@@ -296,7 +259,8 @@ final class PlayerEngine {
     let item = AVPlayerItem(asset: asset)
     attachObservers(to: item)
     player.replaceCurrentItem(with: item)
-    // Waking from hibernation restores the playhead (zero everywhere else).
+    // A source that played before under an evicted engine resumes where it
+    // was (zero everywhere else).
     if resumeTime > 0.1 {
       player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
     }
@@ -307,9 +271,6 @@ final class PlayerEngine {
   // MARK: - Controls
 
   func play(reason: PlaybackChangeReason) {
-    if isHibernated {
-      wake()
-    }
     if status == .error {
       retry()
     }
@@ -341,13 +302,6 @@ final class PlayerEngine {
   }
 
   func seek(to seconds: Double, completion: @escaping () -> Void) {
-    if isHibernated {
-      // No item to seek — retarget the wake resume position instead.
-      resumeTime = max(0, seconds)
-      reachedEnd = false
-      DispatchQueue.main.async { completion() }
-      return
-    }
     let time = CMTime(seconds: seconds, preferredTimescale: 600)
     reachedEnd = false
     player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
@@ -359,7 +313,7 @@ final class PlayerEngine {
 
   // Both observers guard against stale delivery: their blocks are enqueued to
   // main from AVFoundation's threads, so a block can still run after
-  // setSource/hibernate replaced the item it was observing — acting on it
+  // setSource replaced the item it was observing — acting on it
   // would corrupt the new item's state machine (or, with loop on, auto-play
   // the wrong source).
   private func attachObservers(to item: AVPlayerItem) {

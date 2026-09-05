@@ -5,10 +5,12 @@ import Foundation
 ///
 /// A view *leases* the engine for its key. The same key in two places — a
 /// feed cell and the post screen it opens — is one engine, so navigating
-/// between them continues playback at the same frame with no reload. When
-/// the pool is full, the least recently used engine that nothing is
-/// displaying is destroyed and its playhead remembered, so the video resumes
-/// where it was should it come back. Main-thread only.
+/// between them continues playback at the same frame with no reload. Every
+/// pooled engine keeps its item, buffer and decoded frame: scrolling back to
+/// any of the last `maxPlayers` videos, or popping back to a covered screen,
+/// is instant. When the pool is full, the least recently used engine that
+/// nothing is displaying is destroyed and its playhead remembered, so the
+/// video resumes where it was should it come back. Main-thread only.
 final class PlayerPool {
   static let shared = PlayerPool()
   static var maxPlayers = 10
@@ -22,7 +24,7 @@ final class PlayerPool {
   var stats: PlayerPoolStats {
     PlayerPoolStats(
       players: Double(engines.count),
-      liveItems: Double(engines.values.filter { !$0.isHibernated && $0.sourceUri != nil }.count)
+      liveItems: Double(engines.values.filter { ![.idle, .loading, .error].contains($0.status) }.count)
     )
   }
 
@@ -57,10 +59,11 @@ final class PlayerPool {
     return engine
   }
 
-  /// Gives up control without leaving the pool: the engine idles (playhead
-  /// intact) for whoever leases the key next. Playback stops right away
-  /// unless another view is still mirroring it — the mirror is about to take
-  /// over (a screen pop) and must not see a gap.
+  /// Gives up control without leaving the pool: the engine stays live
+  /// (item, buffer, playhead intact) for whoever leases the key next, until
+  /// LRU eviction claims it. Playback stops right away unless another view
+  /// is still mirroring it — the mirror is about to take over (a screen pop)
+  /// and must not see a gap.
   func release(_ engine: PlayerEngine, from view: HybridVideoView) {
     guard engine.owner === view else { return }
     engine.owner = nil
@@ -68,22 +71,16 @@ final class PlayerPool {
     if engine.mirrorCount == 0 {
       engine.pause(reason: .system)
     }
-    // Idle after a grace, unless re-leased: the feed cell under a popped
-    // screen re-leases within a tick and expects the live item.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [self] in
-      guard engine.owner == nil else { return }
-      engine.pause(reason: .system)
-      engine.hibernate()
-      settle()
-    }
+    settle()
   }
 
   private func evictIfNeeded() {
     trim(to: Self.maxPlayers - 1)
   }
 
-  /// Re-applies the cap once something went idle (a covered screen's cells
-  /// hibernating, a released engine settling).
+  /// Re-applies the cap once something stopped being displayed (a screen
+  /// left the window, an engine was released) — a transition can push the
+  /// pool past its cap while both screens' cells count as displayed.
   func settle() {
     trim(to: Self.maxPlayers)
   }
@@ -109,7 +106,7 @@ final class PlayerPool {
   }
 
   private func destroy(_ engine: PlayerEngine) {
-    remember(engine.currentTime, for: engine.key)
+    remember(engine.isLiveStream ? 0 : engine.currentTime, for: engine.key)
     engine.pause(reason: .system)
     engines[engine.key] = nil
     engine.owner?.engineEvicted(engine)

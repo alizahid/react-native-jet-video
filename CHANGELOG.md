@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed a blank frame when scrolling back to a video that had just left the screen (and when popping back to a covered feed): players are no longer torn down on a timer when invisible. Every pooled player keeps its item; the pool's LRU eviction is the only thing that releases one, so anything within the last `maxPlayers` videos resumes instantly.
+
 - Seamless push/pop hand-off: a screen showing a video that's already live on the screen beneath takes the shared player the moment it joins the window (first frame of the push animation is the video), and the election treats a view and the one mirroring its player as the same video, so neither is paused mid-transition. The FeedToDetail example shows the detail view's status trail — a clean hand-off is exactly `playing`.
 
 - **Player pool.** Native players now live in one app-wide pool (10 by default, `configurePlayerPool({ maxPlayers })`), keyed by the new `playerKey` prop (default: the source uri). Views showing the same video share one player, so opening a post from a feed continues the video from the same frame with no reload, and popping back hands it back just as seamlessly (the covered cell keeps rendering during the transition). Scrolled-away cells keep their player idle for instant resume; when the pool is full the least recently used idle player is released and its playhead remembered.

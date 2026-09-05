@@ -95,9 +95,9 @@ The example app's Feed screen pushes onto itself without limit and shows the poo
 
 Video feeds are memory-hungry by default; the library keeps them flat no matter how deep your app goes:
 
-- **Only visible videos hold a player.** A mounted cell that isn't on screen (FlashList's render-ahead, a plain ScrollView's off-screen content, a screen under a page sheet) releases its whole native player stack after a few hundred milliseconds and shows its poster; it's rebuilt when it scrolls back into view. Of the visible `whenVisible` videos, only a handful stay live besides the one playing, so a grid of thumbnails never approaches the platform's decoder limit.
-- **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed.
-- **Covered screens hibernate.** When a screen with videos is pushed under another (navigation stacks, full-screen modals), each video releases its entire native player stack — buffers, network connections, decoder sessions — keeping only the source, playhead, and poster. Navigate back and it rebuilds transparently (from the disk cache when possible) and resumes where it left off. A 10-deep stack of video feeds costs roughly the same memory as one.
+- **The pool is the only budget.** A video gets a player the moment any of it is on screen, and keeps it — off-screen cells, covered screens, popped detail views all stay live until the pool's LRU eviction actually needs the slot. Scrolling back or popping back to any of the last ten videos is instant; nothing is torn down on a timer.
+- **Only the playing video buffers freely.** Every non-playing player is capped to a ~2s forward buffer — warm enough for an instant start when it's elected, without buffering the whole feed. Ten of those is a modest, fixed cost; a 10-deep stack of video feeds costs the same as one.
+- **Eviction never blanks the screen.** Fullscreen, PiP and on-screen players are never evicted; the pool grows past its cap for a moment rather than take one away (a wall of thumbnails on iPad, both screens during a push), and settles back as soon as something leaves the screen.
 - **Transient failures self-heal.** If a visible video errors (decoder pressure, flaky network), it's automatically rebuilt and retried a bounded number of times instead of staying black.
 - **Posters are downsampled** to screen-width pixels at decode, so full-resolution poster URLs don't balloon memory.
 

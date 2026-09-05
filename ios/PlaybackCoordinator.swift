@@ -16,9 +16,9 @@ enum AutoplayOverride {
 /// - elects the single most-visible `whenVisible` video and keeps it playing
 ///   while pausing all others (fully native: works with any scroll container
 ///   with no JS wiring), and
-/// - decides which videos may hold a live player item at all — invisible
-///   ones release theirs, and only a handful of visible non-winners stay
-///   warm — so a long list costs a few players, not one per mounted cell.
+/// - leases a pooled player for every video that's even slightly on screen,
+///   so it's loaded and prerolled before it's elected. Off-screen videos keep
+///   theirs until the pool's LRU eviction needs the slot (`PlayerPool`).
 /// Main-thread only.
 final class PlaybackCoordinator {
   /// Global eligibility threshold — a view must be at least this visible to
@@ -31,16 +31,6 @@ final class PlaybackCoordinator {
   /// Covers transient failures (decoder pressure, flaky network); reset on
   /// source change.
   static let maxErrorRetries = 2
-  /// Visible `whenVisible` videos that keep a live item, winner included.
-  /// The rest show their poster until they rank high enough. Well under
-  /// the platform's concurrent decoder limit.
-  // ponytail: fixed cap; make it configurable if a grid layout needs more.
-  static let maxLiveItems = 6
-  /// Consecutive ticks (~100ms each) a view must be unwanted before its item
-  /// is released, or wanted before it's rebuilt — so a fling through a list
-  /// doesn't build an item for every cell that flashes past.
-  static let hibernateTicks = 3
-  static let wakeTicks = 1
 
   private static var groups: [String: PlaybackCoordinator] = [:]
 
@@ -59,8 +49,6 @@ final class PlaybackCoordinator {
     var fraction: Double = -1
     var offscreenTicks = 0
     var retries = 0
-    var wantedTicks = 0
-    var unwantedTicks = 0
   }
 
   private struct Info {
@@ -220,9 +208,9 @@ final class PlaybackCoordinator {
       dirty = true
     }
     // While one of ours is fullscreen, everything else keeps its natural
-    // visibility: treating the feed as covered would hibernate its cells,
-    // and rebuilding them all during the exit animation is the jank we're
-    // avoiding.
+    // visibility: treating the feed as covered would pause and demote its
+    // cells, and re-electing them all during the exit animation is the jank
+    // we're avoiding.
     let ignorePresentation = active.contains { $0.isFullscreen }
 
     var rectsChanged = false
@@ -307,56 +295,18 @@ final class PlaybackCoordinator {
       }
     }
 
-    updateLiveItems(infos: infos)
+    leaseWanted(infos: infos)
   }
 
-  // MARK: - Item liveness
+  // MARK: - Leasing
 
-  /// Decides which views hold a live AVPlayerItem: the winner, anything
-  /// fullscreen/PiP, non-coordinated videos that are visible or playing, and
-  /// the best-ranked visible coordinated videos up to `maxLiveItems`.
-  /// Everything else hibernates (poster only) after a few ticks.
-  private func updateLiveItems(infos: [Info]) {
-    var budget = Self.maxLiveItems - 1
-    let ranked = infos
-      .filter { $0.coordinated && $0.view !== winner && $0.fraction > 0.001 }
-      .sorted { a, b in
-        a.fraction != b.fraction ? a.fraction > b.fraction : a.precedes(b)
-      }
-    var wantedIds = Set<ObjectIdentifier>()
-    for info in ranked where budget > 0 {
-      wantedIds.insert(ObjectIdentifier(info.view))
-      budget -= 1
-    }
-
-    for info in infos {
-      let view = info.view
-      let id = ObjectIdentifier(view)
-      let wanted: Bool
-      if view === winner || view.isFullscreen || view.isInPictureInPicture {
-        wanted = true
-      } else if info.coordinated {
-        wanted = wantedIds.contains(id)
-      } else {
-        // Never touch a non-coordinated video that's playing: only the app
-        // decides when those stop.
-        wanted = info.fraction > 0.001 || isPlaying(view)
-      }
-      guard var track = tracking[id] else { continue }
-      if wanted {
-        track.wantedTicks += 1
-        track.unwantedTicks = 0
-        if track.wantedTicks >= Self.wakeTicks {
-          view.setItemLive(true)
-        }
-      } else {
-        track.unwantedTicks += 1
-        track.wantedTicks = 0
-        if track.unwantedTicks >= Self.hibernateTicks {
-          view.setItemLive(false)
-        }
-      }
-      tracking[id] = track
+  /// Any visible video (and the winner, fullscreen, PiP) holds a pooled
+  /// player so it's ready the instant it's elected. Nothing is taken away
+  /// here — the pool evicts by LRU when it needs a slot.
+  private func leaseWanted(infos: [Info]) {
+    for info in infos where info.fraction > 0.001 || info.view === winner
+      || info.view.isFullscreen || info.view.isInPictureInPicture {
+      info.view.ensureEngine(force: false)
     }
   }
 
