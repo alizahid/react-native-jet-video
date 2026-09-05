@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Seamless push/pop hand-off: a screen showing a video that's already live on the screen beneath takes the shared player the moment it joins the window (first frame of the push animation is the video), and the election treats a view and the one mirroring its player as the same video, so neither is paused mid-transition. The FeedToDetail example shows the detail view's status trail — a clean hand-off is exactly `playing`.
+
 - **Player pool.** Native players now live in one app-wide pool (10 by default, `configurePlayerPool({ maxPlayers })`), keyed by the new `playerKey` prop (default: the source uri). Views showing the same video share one player, so opening a post from a feed continues the video from the same frame with no reload, and popping back hands it back just as seamlessly (the covered cell keeps rendering during the transition). Scrolled-away cells keep their player idle for instant resume; when the pool is full the least recently used idle player is released and its playhead remembered.
 - `getPlayerPoolStats()` reports live pool usage. The example app now uses React Navigation's native stack; its Feed screen pushes onto itself for pool testing.
 - Election: comparably visible videos are now ranked in reading order (topmost, or leftmost for horizontal lists) instead of by distance to the screen centre — the first video in a feed plays when the screen opens. Any partially visible video is loaded and prerolled immediately.

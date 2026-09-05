@@ -12,7 +12,7 @@ class HybridVideoView: HybridVideoViewSpec {
   private(set) var engine: PlayerEngine?
   /// An engine another view now controls whose player this view keeps
   /// rendering, so the frame under a pushed/popped screen never blanks.
-  private var mirroredEngine: PlayerEngine?
+  private(set) var mirroredEngine: PlayerEngine?
   private var readyForDisplayObservation: NSKeyValueObservation?
   private var controlsReadyObservation: NSKeyValueObservation?
   private var mutedObservation: NSKeyValueObservation?
@@ -671,10 +671,27 @@ class HybridVideoView: HybridVideoViewSpec {
     ensureEngine(force: true)?.play(reason: .system)
   }
 
-  /// Coordinator-driven play: leases the engine if needed (unless it's
-  /// mirroring one another on-window view controls).
+  /// Coordinator-driven play: leases the engine if needed. A view mirroring
+  /// an engine another on-window view controls (the feed cell under a
+  /// pushed post) plays that shared engine instead of stealing it.
   func coordinatorPlay() {
-    ensureEngine(force: false)?.play(reason: .coordinator)
+    if let engine = ensureEngine(force: false) {
+      engine.play(reason: .coordinator)
+    } else if let mirroredEngine, mirroredEngine.owner != nil {
+      mirroredEngine.play(reason: .coordinator)
+    }
+  }
+
+  /// A screen showing a video that's already live on the screen it's
+  /// pushed over takes the player the moment it joins the window — so the
+  /// first frame of the push animation is the video, not a poster. Same-screen
+  /// duplicates (two cells, one key) are left to the coordinator.
+  private func adoptSharedLiveEngine() {
+    guard engine == nil, mirroredEngine == nil, let key = resolvedKey,
+          let shared = PlayerPool.shared.engine(for: key), !shared.isHibernated,
+          let owner = shared.owner,
+          owner.view.nearestViewController !== surface.nearestViewController else { return }
+    ensureEngine(force: false)
   }
 
   private func handleWindowChanged() {
@@ -694,6 +711,7 @@ class HybridVideoView: HybridVideoViewSpec {
     } else {
       hibernateWorkItem?.cancel()
       hibernateWorkItem = nil
+      adoptSharedLiveEngine()
       // A hibernated engine is not woken here: the coordinator rebuilds the
       // items that are actually visible on the reattached screen (a screen
       // pop would otherwise rebuild every cell of the feed at once).

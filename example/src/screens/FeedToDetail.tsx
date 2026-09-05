@@ -75,6 +75,9 @@ function Cell({ item, onPress }: { item: Item; onPress: () => void }) {
 function Detail({ item, onClose }: { item: Item; onClose: () => void }) {
   const [time, setTime] = useState(0)
   const [status, setStatus] = useState('idle')
+  // Every status this view reported, in order: a seamless hand-off is
+  // exactly ["playing"] — no idle/loading/paused on the way.
+  const [trail, setTrail] = useState<string[]>([])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,11 +90,17 @@ function Detail({ item, onClose }: { item: Item; onClose: () => void }) {
         muted
         loop
         style={styles.video}
-        onPlaybackStateChange={(event) => setStatus(event.status)}
+        onPlaybackStateChange={(event) => {
+          setStatus(event.status)
+          setTrail((previous) => [...previous, event.status])
+        }}
         onProgress={(event) => setTime(event.currentTime)}
       />
       <Text style={styles.meta} testID="detail-meta">
         detail #{item.id} · {status} · t={time.toFixed(1)}
+      </Text>
+      <Text style={styles.meta} testID="detail-trail">
+        trail: {trail.join(' → ')}
       </Text>
     </SafeAreaView>
   )

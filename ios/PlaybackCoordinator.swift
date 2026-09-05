@@ -295,9 +295,12 @@ final class PlaybackCoordinator {
       // a source swap, so before this sweep a recycled playing cell would
       // restart its NEW source at any visibility, and the election would
       // never notice a playing non-winner.
+      // A view whose engine the winner is mirroring IS the winner's video
+      // (the post screen taking over from the feed cell mid-transition).
       for info in infos
       where info.coordinated
         && info.view !== winner
+        && !(info.view.engine != nil && info.view.engine === winner?.mirroredEngine)
         && !info.view.isFullscreen
         && !info.view.isInPictureInPicture {
         pauseIfPlaying(info.view)
