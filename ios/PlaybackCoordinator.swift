@@ -13,7 +13,7 @@ enum AutoplayOverride {
 }
 
 /// Tracks the visibility of every mounted video in a group and, from that:
-/// - elects the single most-visible `whenVisible` video and keeps it playing
+/// - elects the single most-prominent `whenVisible` video and keeps it playing
 ///   while pausing all others (fully native: works with any scroll container
 ///   with no JS wiring), and
 /// - leases a pooled player for every video that's even slightly on screen,
@@ -53,7 +53,12 @@ final class PlaybackCoordinator {
 
   private struct Info {
     let view: HybridVideoView
+    /// How much of the view is on screen (eligibility).
     let fraction: Double
+    /// How much of the screen the view's visible part covers (ranking): a
+    /// tall video clipped by its cell is 60% visible but fills half the
+    /// screen; a short one fully in view is 100% visible but a sliver.
+    let prominence: Double
     let rect: CGRect
     var coordinated: Bool { view.autoplayMode == .whenvisible }
 
@@ -220,7 +225,7 @@ final class PlaybackCoordinator {
     for view in active {
       let id = ObjectIdentifier(view)
       var track = tracking[id] ?? Tracking()
-      let (fraction, rect) = VisibilityTracker.visibleFraction(
+      let (fraction, prominence, rect) = VisibilityTracker.visibleFraction(
         of: view.view,
         axis: view.visibilityAxis,
         ignorePresentation: ignorePresentation
@@ -270,7 +275,7 @@ final class PlaybackCoordinator {
       }
 
       tracking[id] = track
-      infos.append(Info(view: view, fraction: fraction, rect: rect))
+      infos.append(Info(view: view, fraction: fraction, prominence: prominence, rect: rect))
     }
 
     if rectsChanged || dirty {
@@ -354,11 +359,12 @@ final class PlaybackCoordinator {
       return
     }
 
-    // Ranking: a decisively more-visible video wins; when visibility is
-    // comparable (within hysteresis), the first in reading order wins.
+    // Ranking: the video covering decisively more of the screen wins; when
+    // coverage is comparable (within hysteresis — 10% of the screen), the
+    // first in reading order wins.
     func outranks(_ a: Info, _ b: Info) -> Bool {
-      if a.fraction > b.fraction + Self.hysteresis { return true }
-      if b.fraction > a.fraction + Self.hysteresis { return false }
+      if a.prominence > b.prominence + Self.hysteresis { return true }
+      if b.prominence > a.prominence + Self.hysteresis { return false }
       return a.precedes(b)
     }
 

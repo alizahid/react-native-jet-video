@@ -4,11 +4,13 @@ enum VisibilityTracker {
   /// Computes how much of `view` is actually visible on screen, walking up the
   /// superview chain and intersecting with every clipping ancestor (scroll
   /// views always clip), then with the window bounds. Returns the visible
-  /// fraction (0–1) and the view's rect in window coordinates (for
-  /// tie-breaking). `axis` picks the formula: `.both` measures visible area;
-  /// `.vertical`/`.horizontal` measure coverage along that axis only, so
-  /// displacement on the other axis doesn't reduce the fraction while any
-  /// part of the view remains on screen.
+  /// fraction (0–1), the view's prominence — how much of the *screen* its
+  /// visible part covers (0–1), so a tall video clipped by its container
+  /// still outranks a short one that fits entirely — and the view's rect in
+  /// window coordinates (for tie-breaking). `axis` picks the formula: `.both`
+  /// measures visible area; `.vertical`/`.horizontal` measure coverage along
+  /// that axis only, so displacement on the other axis doesn't reduce either
+  /// value while any part of the view remains on screen.
   ///
   /// A view whose screen sits under a covering modal presentation (page
   /// sheet, form sheet, full screen) counts as invisible, unless
@@ -18,32 +20,33 @@ enum VisibilityTracker {
     of view: UIView,
     axis: VisibilityAxis = .both,
     ignorePresentation: Bool = false
-  ) -> (fraction: Double, windowRect: CGRect) {
+  ) -> (fraction: Double, prominence: Double, windowRect: CGRect) {
     guard let window = view.window, !view.isHidden, view.alpha > 0.01 else {
-      return (0, .zero)
+      return (0, 0, .zero)
     }
     let bounds = view.bounds
     let area = bounds.width * bounds.height
-    guard area > 0 else {
-      return (0, .zero)
+    let screenArea = window.bounds.width * window.bounds.height
+    guard area > 0, screenArea > 0 else {
+      return (0, 0, .zero)
     }
 
     let windowRect = view.convert(bounds, to: nil)
     if !ignorePresentation, isCoveredByPresentation(view) {
-      return (0, windowRect)
+      return (0, 0, windowRect)
     }
     var visible = bounds
     var current: UIView = view
 
     while let superview = current.superview {
       guard !superview.isHidden, superview.alpha > 0.01 else {
-        return (0, windowRect)
+        return (0, 0, windowRect)
       }
       visible = current.convert(visible, to: superview)
       if superview.clipsToBounds || superview is UIScrollView {
         visible = visible.intersection(superview.bounds)
         if visible.isNull || visible.isEmpty {
-          return (0, windowRect)
+          return (0, 0, windowRect)
         }
       }
       current = superview
@@ -52,19 +55,20 @@ enum VisibilityTracker {
     // `visible` is now in window coordinates (the walk ends at the window).
     visible = visible.intersection(window.bounds)
     guard !visible.isNull, !visible.isEmpty else {
-      return (0, windowRect)
+      return (0, 0, windowRect)
     }
 
-    let fraction: Double
+    let visibleArea: CGFloat
     switch axis {
     case .vertical:
-      fraction = Double(visible.height / bounds.height)
+      visibleArea = visible.height * bounds.width
     case .horizontal:
-      fraction = Double(visible.width / bounds.width)
+      visibleArea = visible.width * bounds.height
     case .both:
-      fraction = Double((visible.width * visible.height) / area)
+      visibleArea = visible.width * visible.height
     }
-    return (min(1, max(0, fraction)), windowRect)
+    let clamp = { (value: CGFloat) in min(1, max(0, Double(value))) }
+    return (clamp(visibleArea / area), clamp(visibleArea / screenArea), windowRect)
   }
 
   private static func isCoveredByPresentation(_ view: UIView) -> Bool {

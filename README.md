@@ -27,7 +27,7 @@ import { VideoView } from 'react-native-jet-video'
 
 ## The headline: feeds that just work
 
-Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or any scroll container) with `autoplay="whenVisible"`, and the library's native playback coordinator makes sure **only the most-visible video plays** — the rest stay paused. No viewability callbacks, no scroll listeners, no JS wiring:
+Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or any scroll container) with `autoplay="whenVisible"`, and the library's native playback coordinator makes sure **only the most prominent video plays** — the rest stay paused. No viewability callbacks, no scroll listeners, no JS wiring:
 
 ```tsx
 <FlashList
@@ -46,7 +46,7 @@ Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or a
 
 How the election works (all native, ~10 Hz, works with nested/clipped scroll views):
 
-- A video is eligible once it's ≥20% visible; the most-visible eligible video plays (and stops once it drops below the threshold). When two are comparably visible, the first in reading order plays — the top one in a feed, the leftmost in a carousel. Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
+- A video is eligible once it's ≥20% visible; the eligible video covering the most screen plays (and stops once it drops below the threshold) — so a tall video clipped by its cell beats a short one that happens to fit entirely. When two cover a comparable share of the screen, the first in reading order plays — the top one in a feed, the leftmost in a carousel. Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
 - Any video that's even slightly on screen is loaded and prerolled, so the moment it's elected it starts on the next frame.
 - When two videos are comparably visible (e.g. both fully on screen), the one **closest to the center of the screen** plays — so scrolling in either direction hands playback to the video you're looking at.
 - Hysteresis + debouncing prevent flapping when two videos are near 50/50.
