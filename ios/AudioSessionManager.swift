@@ -5,10 +5,16 @@ import AVFoundation
 ///
 /// - Category is always `.playback` (PiP and unmuted playback both require
 ///   it). Never `.ambient`: switching categories mid-playback rebuilds the
-///   audio graph, which audibly pops when a feed video unmutes, and
-///   `.ambient` rejects the movie-playback mode — leaving the process on the
-///   default `soloAmbient`, which AVPlayer then activates implicitly on its
-///   first play and stops the user's music.
+///   audio graph, which audibly pops when a feed video unmutes.
+/// - Mode is `.default`, and the mode is never a reason to reconfigure.
+///   Reconfiguring a session that another library has already *activated*
+///   (react-native-sound-player's `setMixAudio(true)` does `playback` +
+///   `mixWithOthers` + `setActive` at JS startup) interrupts other apps'
+///   audio even though every option involved is mixable — verified on
+///   device: the one `setCategory` call that switched an active session's
+///   mode to `.moviePlayback` paused Apple Music. `.default` matches what
+///   such libraries set, so the call is skipped; `.moviePlayback` only added
+///   speaker EQ for dialogue, which a feed player doesn't need.
 /// - Options: muted playback always mixes; unmuted playback uses the view's
 ///   `audioMixMode` (`mixWithOthers` by default, so still no interruption).
 /// - The *real* session state is checked before every play, not a cached
@@ -85,8 +91,8 @@ final class AudioSessionManager {
     let options: AVAudioSession.CategoryOptions = muted ? [.mixWithOthers] : Self.options(for: mixMode)
     queue.async { [self] in
       let session = AVAudioSession.sharedInstance()
-      if session.category != .playback || session.categoryOptions != options || session.mode != .moviePlayback {
-        try? session.setCategory(.playback, mode: .moviePlayback, options: options)
+      if session.category != .playback || session.categoryOptions != options {
+        try? session.setCategory(.playback, mode: .default, options: options)
       }
       if activate, !activated {
         activated = (try? session.setActive(true)) != nil
