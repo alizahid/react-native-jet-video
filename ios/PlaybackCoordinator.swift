@@ -53,12 +53,16 @@ final class PlaybackCoordinator {
 
   private struct Info {
     let view: HybridVideoView
-    /// How much of the view is on screen (eligibility).
+    /// How much of the view (as its layout shows it) is on screen: eligibility.
     let fraction: Double
-    /// How much of the screen the view's visible part covers (ranking): a
-    /// tall video clipped by its cell is 60% visible but fills half the
-    /// screen; a short one fully in view is 100% visible but a sliver.
+    /// How much of the screen the view's visible part covers.
     let prominence: Double
+    /// Ranking: screen coverage discounted by how much of the video is cut
+    /// off. Coverage alone let a tall video half-hidden under a transparent
+    /// header keep playing over a short one fully in view below it (both
+    /// covered ~25% of the screen); fraction alone let a short video fully in
+    /// view beat a taller one that fills most of the screen.
+    var score: Double { prominence * fraction }
     let rect: CGRect
     var coordinated: Bool { view.autoplayMode == .whenvisible }
 
@@ -359,12 +363,11 @@ final class PlaybackCoordinator {
       return
     }
 
-    // Ranking: the video covering decisively more of the screen wins; when
-    // coverage is comparable (within hysteresis — 10% of the screen), the
-    // first in reading order wins.
+    // Ranking: the decisively higher score wins; when scores are comparable
+    // (within hysteresis — 10% of the screen), the first in reading order.
     func outranks(_ a: Info, _ b: Info) -> Bool {
-      if a.prominence > b.prominence + Self.hysteresis { return true }
-      if b.prominence > a.prominence + Self.hysteresis { return false }
+      if a.score > b.score + Self.hysteresis { return true }
+      if b.score > a.score + Self.hysteresis { return false }
       return a.precedes(b)
     }
 

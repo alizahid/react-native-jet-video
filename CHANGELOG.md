@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fullscreen enter/exit are now as smooth as the system's: the fullscreen controller no longer pauses the player as the exit lands (AVKit's `canPausePlaybackWhenExitingFullScreen`), which removed the rate re-sync stutter right after the shrink animation, and it renders aspect-fit like the fullscreen presentation itself, so the zoom no longer pops at its first frame.
+- Election: visibility is measured against what the layout shows of a video (an `overflow: hidden` cell's crop, not the video's full bounds), content under a transparent header or translucent tab bar no longer counts as visible, and ranking is screen coverage discounted by how much of the video is cut off — a tall video half hidden under the header now yields to the short one fully in view below it. The example Feed uses a transparent header with alternating tall/short cells.
 
 - Fixed a blank frame when scrolling back to a video that had just left the screen (and when popping back to a covered feed): players are no longer torn down on a timer when invisible. Every pooled player keeps its item; the pool's LRU eviction is the only thing that releases one, so anything within the last `maxPlayers` videos resumes instantly.
 

@@ -55,7 +55,7 @@ export interface VideoViewProps {
   /**
    * `false` (default): never autoplay. `true`: play as soon as the source is ready.
    * `'whenVisible'`: this view participates in visibility-based autoplay — of all
-   * mounted `whenVisible` views, only the most prominent one (covering the most screen) plays at a time.
+   * mounted `whenVisible` views, only the most prominent one (covering the most screen, least cut off) plays at a time.
    */
   autoplay?: boolean | 'whenVisible'
   muted?: boolean

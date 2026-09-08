@@ -46,9 +46,8 @@ Drop `VideoView` into a [FlashList](https://shopify.github.io/flash-list/) (or a
 
 How the election works (all native, ~10 Hz, works with nested/clipped scroll views):
 
-- A video is eligible once it's ≥20% visible; the eligible video covering the most screen plays (and stops once it drops below the threshold) — so a tall video clipped by its cell beats a short one that happens to fit entirely. When two cover a comparable share of the screen, the first in reading order plays — the top one in a feed, the leftmost in a carousel. Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
+- A video is eligible once it's ≥20% visible (stops once it drops below); visibility is measured against what its layout shows — a video cropped by an `overflow: hidden` cell is fully visible when the cell is — and content under a transparent header or translucent tab bar doesn't count. Among eligible videos, the one covering the most screen *and* least cut off plays: a tall video that fills half the screen beats a short one below it, but once that tall video is half hidden under the header, the short one fully in view takes over. When two are comparable, the first in reading order plays — the top one in a feed, the leftmost in a carousel. Tune the threshold per view with `minVisibleFraction`, or globally via `configureAutoplay`.
 - Any video that's even slightly on screen is loaded and prerolled, so the moment it's elected it starts on the next frame.
-- When two videos are comparably visible (e.g. both fully on screen), the one **closest to the center of the screen** plays — so scrolling in either direction hands playback to the video you're looking at.
 - Hysteresis + debouncing prevent flapping when two videos are near 50/50.
 - If the user pauses a video (ref or tap), the coordinator **never force-resumes it** — until it scrolls fully away, which resets it like feeds you know.
 - If the user plays a video explicitly, it wins the election until it scrolls below the threshold.

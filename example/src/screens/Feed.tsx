@@ -14,11 +14,15 @@ import { VIDEOS } from '../videos'
 interface FeedItem {
   id: number
   uri: string
+  aspectRatio: number
 }
 
 const ITEMS: FeedItem[] = Array.from({ length: 200 }, (_, index) => ({
   id: index,
   uri: VIDEOS[index % VIDEOS.length] as string,
+  // Alternate tall and short cells: a tall video half-hidden under the
+  // transparent header must not outrank the short one fully visible below.
+  aspectRatio: index % 2 === 0 ? 4 / 5 : 16 / 9,
 }))
 
 function FeedCell({ item, depth }: { item: FeedItem; depth: number }) {
@@ -47,7 +51,7 @@ function FeedCell({ item, depth }: { item: FeedItem; depth: number }) {
           autoplay="whenVisible"
           muted
           loop
-          style={styles.video}
+          style={[styles.video, { aspectRatio: item.aspectRatio }]}
           onPlaybackStateChange={(event) => {
             setStatus(event.status)
             setReason(event.reason)
@@ -96,6 +100,8 @@ export function Feed({
   useEffect(() => {
     navigation?.setOptions({
       title: `Feed ${depth} · ${stats}`,
+      headerBlurEffect: 'systemChromeMaterialDark',
+      headerTransparent: true,
       headerRight: () => (
         <Pressable
           onPress={() => navigation.push('Feed', { depth: depth + 1 })}
@@ -109,6 +115,7 @@ export function Feed({
 
   return (
     <FlashList
+      contentInsetAdjustmentBehavior="automatic"
       data={ITEMS}
       keyExtractor={(item) => String(item.id)}
       renderItem={({ item }) => <FeedCell depth={depth} item={item} />}
@@ -126,7 +133,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   video: {
-    aspectRatio: 16 / 9,
     backgroundColor: '#000',
     width: '100%',
   },
