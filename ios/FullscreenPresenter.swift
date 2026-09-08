@@ -46,9 +46,10 @@ final class FullscreenPresenter: NSObject {
     // audio — never do it implicitly.
     controller.updatesNowPlayingInfoCenter = false
     controller.showsPlaybackControls = true
-    controller.videoGravity = PlayerLayerView.gravity(for: view.resizeMode)
+    controller.videoGravity = .resizeAspect
     controller.allowsPictureInPicturePlayback = view.allowsPictureInPicture
     controller.delegate = self
+    Self.keepPlayingThroughExit(controller)
 
     self.controller = controller
     self.engine = engine
@@ -206,6 +207,17 @@ final class FullscreenPresenter: NSObject {
   }
 
   // MARK: - AVKit transition
+
+  /// AVKit pauses the player as its fullscreen exit lands (twice, in
+  /// practice), and reverting that on the spot still costs a rate re-sync —
+  /// the stutter right after the shrink animation. Its private
+  /// `canPausePlaybackWhenExitingFullScreen` flag skips the pause entirely.
+  /// The transition hold stays as the fallback should the flag disappear.
+  static func keepPlayingThroughExit(_ controller: AVPlayerViewController) {
+    let selector = NSSelectorFromString("setCanPausePlaybackWhenExitingFullScreen:")
+    guard controller.responds(to: selector) else { return }
+    controller.setValue(false, forKey: "canPausePlaybackWhenExitingFullScreen")
+  }
 
   private static func supportsAVKitTransition(_ controller: AVPlayerViewController) -> Bool {
     controller.responds(to: NSSelectorFromString("enterFullScreenAnimated:completionHandler:"))

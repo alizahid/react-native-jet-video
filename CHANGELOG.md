@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fullscreen enter/exit are now as smooth as the system's: the fullscreen controller no longer pauses the player as the exit lands (AVKit's `canPausePlaybackWhenExitingFullScreen`), which removed the rate re-sync stutter right after the shrink animation, and it renders aspect-fit like the fullscreen presentation itself, so the zoom no longer pops at its first frame.
+
 - Fixed a blank frame when scrolling back to a video that had just left the screen (and when popping back to a covered feed): players are no longer torn down on a timer when invisible. Every pooled player keeps its item; the pool's LRU eviction is the only thing that releases one, so anything within the last `maxPlayers` videos resumes instantly.
 
 - Seamless push/pop hand-off: a screen showing a video that's already live on the screen beneath takes the shared player the moment it joins the window (first frame of the push animation is the video), and the election treats a view and the one mirroring its player as the same video, so neither is paused mid-transition. The FeedToDetail example shows the detail view's status trail — a clean hand-off is exactly `playing`.

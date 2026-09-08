@@ -626,6 +626,7 @@ class HybridVideoView: HybridVideoViewSpec {
       controller.allowsPictureInPicturePlayback = allowsPictureInPicture
       controller.canStartPictureInPictureAutomaticallyFromInline = allowsPictureInPicture
       controller.delegate = controllerDelegateProxy
+      FullscreenPresenter.keepPlayingThroughExit(controller)
       // The inline surface layer is blank in controls mode, so its
       // isReadyForDisplay never fires — hide the poster off the controller's
       // own readiness instead.
