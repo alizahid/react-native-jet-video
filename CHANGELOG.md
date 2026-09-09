@@ -1,66 +1,46 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
-- The inline renderer is now a single `AVPlayerViewController` per view (the expo-video approach), chrome hidden unless `controls`. Each player draws to one layer instead of two (the bare layer plus a hidden warm controller), the fullscreen zoom starts from the renderer already on screen, `controls` toggles chrome instead of rebuilding the surface, and Picture-in-Picture goes through the same controller. Fullscreen and PiP still use AVKit's private transition/start selectors; `enterFullscreen()` now rejects instead of falling back to a modal if they ever disappear.
-- Fabric's unmount now releases the view's player deterministically (`onDropView`); previously the release waited for JS garbage collection and was a no-op when it ran.
-- Fixed a wrong cached content length for `Content-Range: bytes x-y/*` replies to bounded range requests.
-- `VideoView` no longer marks every callback prop dirty on each parent re-render.
+The first stable release. Everything since 0.1.0, curated:
+
+### Rendering and fullscreen
+
+- The inline renderer is a single `AVPlayerViewController` per view (the expo-video approach), chrome hidden unless `controls`. Each player draws to exactly one layer, `controls` toggles chrome instead of rebuilding the surface, and a chromeless video lets touches through to whatever wraps it (a Pressable).
+- Fullscreen uses AVKit's native zoom — it expands out of the `VideoView` and collapses back into it — starting from the renderer already on screen, so nothing is attached to or detached from the player around the animation. Playback rolls through both transitions: AVKit's implicit pauses are skipped (`canPausePlaybackWhenExitingFullScreen`) and any that slip through are reverted synchronously, fullscreen chrome is dropped as the exit starts, and the audio session is activated before the zoom so an unmute in `onFullscreenChange` doesn't reconfigure audio mid-animation.
+- A deliberate pause made in fullscreen (or on the inline controls) sticks and registers as a user pause with the coordinator, so it isn't force-resumed. Fullscreen survives the originating cell being recycled.
+- `enterFullscreen()` rejects if AVKit's transition selector is ever unavailable (no modal fallback).
+
+### Player pool
+
+- Native players live in one app-wide pool (5 by default, `configurePlayerPool({ maxPlayers })`), keyed by the new `playerKey` prop (default: the source uri). Views showing the same video share one player: opening a post from a feed continues from the same frame with no reload, and popping back hands it back seamlessly — the covered cell keeps rendering during the transition, and a screen showing a video already live beneath it takes the player the moment it joins the window.
+- Scrolled-away cells and covered screens keep their player idle for instant resume; nothing is torn down on a timer. When the pool is full, the least recently used player nothing is displaying is released and its playhead remembered. Fullscreen, PiP and on-screen players are never evicted.
+- Only the playing video buffers freely; every other player is capped to a ~2s forward buffer. Ready players preroll so an elected video starts on the next frame.
+- `getPlayerPoolStats()` reports live pool usage. Fabric's unmount releases the view's player deterministically.
+
+### Visibility election
+
+- Eligibility threshold is 20% (was 50%), overridable per view with the new `minVisibleFraction` prop. Visibility is measured against what the layout shows of a video (an `overflow: hidden` cell's crop), and content under a transparent header or translucent tab bar doesn't count.
+- Ranking is screen coverage discounted by how much of the video is cut off; comparable candidates go in reading order (topmost, or leftmost for horizontal lists), so the first video in a feed plays when the screen opens.
+- New `visibilityAxis` prop (`'both' | 'vertical' | 'horizontal'`): single-axis coverage so swipe-to-action cells don't pause mid-swipe.
+- Videos under a covering modal presentation (page/form sheet, full screen) count as invisible. Playback resumes after an audio interruption (call, Siri) ends. A visible video that errors is rebuilt and retried a bounded number of times. Loops don't flicker through a paused state at the boundary.
+
+### Audio
+
+- The session is always `playback` + mixing, verified against the live session state before every play, so muted playback never stops the user's music — at launch or later — and unmuting never switches categories mid-playback. All audio-session work runs off the main thread; playback starts are sequenced behind it. Now Playing is never claimed.
+- The PiP controller is created on first play, after the session is configured (creating one per mounting cell was a launch-time hang and a background-music killer).
+
+### Caching
+
+- Transparent disk caching for progressive sources (MP4/MOV/M4A…): a byte-range cache with write-through streaming, so partially streamed videos resume from disk across playbacks and app launches. LRU eviction, 1 GB default. HLS is not disk-cached.
+- New APIs: `clearCache()`, `getCacheSize()`, `configureCache({ maxSizeBytes })`, and a per-source opt-out (`source={{ uri, cache: false }}`).
+- One shared URL session, metadata read lazily off the main thread, throttled metadata writes and eviction scans. `clearCache()` during playback no longer corrupts active entries.
+
+### Breaking changes since 0.1.0
+
+- `onProgress` reports `bufferedPosition` (absolute position buffered contiguously ahead of the playhead, what scrubbers draw) instead of `bufferedDuration`.
+- `autoEnterPiPOnBackground` is gone; `allowsPictureInPicture` alone also auto-enters PiP when the app is backgrounded.
 - Peer range: `react-native-nitro-modules >= 0.36`.
-
-- Fullscreen enter/exit are now as smooth as the system's: the fullscreen controller no longer pauses the player as the exit lands (AVKit's `canPausePlaybackWhenExitingFullScreen`), which removed the rate re-sync stutter right after the shrink animation, and it renders aspect-fit like the fullscreen presentation itself, so the zoom no longer pops at its first frame.
-- Fullscreen no longer attaches or detaches anything from the player around the animations. Attaching or detaching an AVPlayerLayer makes a playing AVPlayer renegotiate its video pipeline — a visible frame hold about half a second later, mid-zoom or just after the exit landed. A chromeless view now keeps its fullscreen controller warm (hidden, attached) while it holds a player, the inline layer stays attached under a black cover during the presentation, and the controller is handed back afterwards. In controls mode the embedded controller zooms itself. Entering fullscreen also activates the audio session before the zoom, so an unmute made in `onFullscreenChange` doesn't reconfigure audio mid-animation.
-- Fixed a freshly mounted `autoplay` view staying on a still frame when it adopted a pooled player that the screen being popped had paused.
-- Election: visibility is measured against what the layout shows of a video (an `overflow: hidden` cell's crop, not the video's full bounds), content under a transparent header or translucent tab bar no longer counts as visible, and ranking is screen coverage discounted by how much of the video is cut off — a tall video half hidden under the header now yields to the short one fully in view below it. The example Feed uses a transparent header with alternating tall/short cells.
-
-- Fixed a blank frame when scrolling back to a video that had just left the screen (and when popping back to a covered feed): players are no longer torn down on a timer when invisible. Every pooled player keeps its item; the pool's LRU eviction is the only thing that releases one, so anything within the last `maxPlayers` videos resumes instantly.
-
-- Seamless push/pop hand-off: a screen showing a video that's already live on the screen beneath takes the shared player the moment it joins the window (first frame of the push animation is the video), and the election treats a view and the one mirroring its player as the same video, so neither is paused mid-transition. The FeedToDetail example shows the detail view's status trail — a clean hand-off is exactly `playing`.
-
-- **Player pool.** Native players now live in one app-wide pool (5 by default, `configurePlayerPool({ maxPlayers })`), keyed by the new `playerKey` prop (default: the source uri). Views showing the same video share one player, so opening a post from a feed continues the video from the same frame with no reload, and popping back hands it back just as seamlessly (the covered cell keeps rendering during the transition). Scrolled-away cells keep their player idle for instant resume; when the pool is full the least recently used idle player is released and its playhead remembered.
-- `getPlayerPoolStats()` reports live pool usage. The example app now uses React Navigation's native stack; its Feed screen pushes onto itself for pool testing.
-- Election: comparably visible videos are now ranked in reading order (topmost, or leftmost for horizontal lists) instead of by distance to the screen centre — the first video in a feed plays when the screen opens. Any partially visible video is loaded and prerolled immediately.
-
-- Memory/CPU: only visible videos hold a live player item. Mounted-but-offscreen cells (FlashList render-ahead, ScrollView content, feeds under a page sheet) release their whole player stack and show the poster; visible `whenVisible` videos beyond the playing one are capped at a handful. Posters decode at screen-width instead of screen-height pixels. The disk cache now uses one shared URL session (no per-video session, URLCache disabled), reads metadata lazily off the main thread, and throttles metadata writes and eviction scans.
-- Audio: fixed muted playback stopping the user's music at app launch — the `ambient` category was requested with the movie-playback mode, which it rejects, leaving the default `soloAmbient` for AVPlayer to activate. The session is now always `playback` + mixing (verified against the live session state before every play, so other libraries can't leave a non-mixing category behind), the PiP controller is created only after the session is configured, and unmuting no longer switches categories mid-playback.
-- Election: a pause made on AVKit's controls (fullscreen or embedded) is now a user pause and is no longer force-resumed; playback resumes after an audio interruption (call, Siri) ends; videos under a covering modal presentation (page/form sheet, full screen) count as invisible and pause; loops no longer flicker through a paused state at the boundary.
-- Fullscreen: AVKit's implicit pauses during the enter/exit animations are reverted synchronously (before the audio pipeline drains) instead of a frame later, and the enter transition waits for the fullscreen controller to have a frame — no black flash, freeze, or audio dip on either side.
-
-- Fixed flicker when exiting fullscreen: the inline layer is blanked while
-  AVKit owns rendering (no double image behind the shrinking video),
-  fullscreen chrome is dropped as the exit starts (no controls flash at the
-  inline rect), and the embedded view is removed only once the inline layer
-  has a frame ready (no black flash on handback).
-
-- **Breaking:** `onProgress` now reports `bufferedPosition` — the absolute
-  position up to which media is buffered contiguously from the playhead
-  (what scrubbers draw) — replacing `bufferedDuration`, which was the
-  seconds-ahead runway and shrank as playback consumed the buffer.
-
-- Fullscreen now uses AVKit's native zoom transition — fullscreen expands out
-  of the `VideoView` and collapses back into it (like expo-video) instead of
-  sliding up as a modal.
-- Playback resumes after exiting fullscreen when the video was playing;
-  AVKit's implicit pause during dismissal is undone. A deliberate pause made
-  in fullscreen sticks, and registers as a user-pause with the autoplay
-  coordinator so it isn't force-resumed.
-
-- Autoplay election: when candidates are comparably visible (within
-  hysteresis), the video closest to the screen center now wins — fixes
-  scrolling back up not handing playback to the previous video, and makes
-  handoff symmetric in both scroll directions.
-- Fixed cache corruption when `clearCache()` ran during active playback:
-  active entries now reset their in-memory state, and stale metadata ranges
-  that can't be backed by the data file are dropped on load.
-- **Breaking:** removed `autoEnterPiPOnBackground`. `allowsPictureInPicture`
-  alone now also auto-enters PiP with the currently playing video when the app
-  is backgrounded.
-- Transparent disk caching for progressive sources (MP4/MOV/M4A…): byte-range
-  cache with write-through streaming, so partially streamed videos resume from
-  disk across playbacks and app launches. LRU eviction (1 GB default).
-- New APIs: `clearCache()`, `getCacheSize()`, `configureCache({ maxSizeBytes })`,
-  and a per-source opt-out (`source={{ uri, cache: false }}`).
-- HLS is not disk-cached (documented).
 
 ## 0.1.0
 
