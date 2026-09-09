@@ -317,6 +317,7 @@ class HybridVideoView: HybridVideoViewSpec {
         // pops at the zoom's first frame. Switched at rest, before the zoom.
         controller.videoGravity = .resizeAspect
         controller.showsPlaybackControls = true
+        controller.view.isUserInteractionEnabled = true
         engine?.beginTransitionPlaybackHold()
         FullscreenPresenter.performTransition(
           controller,
@@ -390,8 +391,14 @@ class HybridVideoView: HybridVideoViewSpec {
     controller?.videoGravity = isFullscreen ? .resizeAspect : SurfaceView.gravity(for: resizeMode)
   }
 
+  /// Chrome, and with it touch handling: even with controls hidden the
+  /// controller's view has tap recognizers, and a chromeless video must let
+  /// touches through to whatever wraps it (a Pressable). Fullscreen reuses
+  /// this same view for the presentation, so it takes touches there.
   private func applyChrome() {
-    controller?.showsPlaybackControls = controls || isFullscreen
+    let interactive = controls || isFullscreen
+    controller?.showsPlaybackControls = interactive
+    controller?.view.isUserInteractionEnabled = interactive
   }
 
   // MARK: - Picture in Picture
@@ -678,6 +685,7 @@ class HybridVideoView: HybridVideoViewSpec {
     // audio — never do it implicitly.
     controller.updatesNowPlayingInfoCenter = false
     controller.showsPlaybackControls = controls
+    controller.view.isUserInteractionEnabled = controls
     controller.videoGravity = SurfaceView.gravity(for: resizeMode)
     controller.allowsPictureInPicturePlayback = false
     controller.delegate = controllerDelegateProxy
