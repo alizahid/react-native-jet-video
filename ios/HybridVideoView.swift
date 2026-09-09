@@ -842,8 +842,15 @@ final class PlayerControllerDelegateProxy: NSObject, AVPlayerViewControllerDeleg
     if owner?.controls != true {
       playerViewController.showsPlaybackControls = false
     }
-    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+    coordinator.animate(alongsideTransition: nil) { [weak self] context in
       guard let owner = self?.owner else { return }
+      // A swipe-to-dismiss the user let go of early: AVKit snaps back to
+      // fullscreen, so only the chrome hidden above needs restoring.
+      if context.isCancelled {
+        playerViewController.showsPlaybackControls = true
+        owner.engine?.endTransitionPlaybackHold()
+        return
+      }
       owner.fullscreenExitPlaybackIntent(wasPlaying: wasPlaying)
       owner.fullscreenTransition(active: false)
       owner.engine?.endTransitionPlaybackHold()

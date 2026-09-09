@@ -91,7 +91,11 @@ extension FullscreenPresenter: AVPlayerViewControllerDelegate {
     willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
   ) {
     playerViewController.showsPlaybackControls = false
-    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+    coordinator.animate(alongsideTransition: nil) { [weak self] context in
+      guard !context.isCancelled else {
+        playerViewController.showsPlaybackControls = true
+        return
+      }
       self?.finish()
     }
   }
