@@ -22,10 +22,19 @@ final class VideoCache {
   private let queue = DispatchQueue(label: "com.jetvideo.cache")
   private let directory: URL
   // Entries currently held by a resource loader; excluded from eviction.
+  // Guarded by `entriesLock`, not `queue`: `entry(for:)` runs on main at item
+  // attach and must never wait behind a directory scan or a clear.
+  private let entriesLock = NSLock()
   private let activeEntries = NSMapTable<NSString, CacheEntry>(
     keyOptions: .copyIn,
     valueOptions: .weakMemory
   )
+
+  private func activeEntry(for key: String) -> CacheEntry? {
+    entriesLock.lock()
+    defer { entriesLock.unlock() }
+    return activeEntries.object(forKey: key as NSString)
+  }
 
   init() {
     let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -34,19 +43,19 @@ final class VideoCache {
   }
 
   func entry(for url: URL) -> CacheEntry {
-    queue.sync {
-      let key = Self.key(for: url)
-      if let existing = activeEntries.object(forKey: key as NSString) {
-        return existing
-      }
-      let entry = CacheEntry(
-        url: url,
-        dataURL: directory.appendingPathComponent("\(key).bin"),
-        metaURL: directory.appendingPathComponent("\(key).json")
-      )
-      activeEntries.setObject(entry, forKey: key as NSString)
-      return entry
+    let key = Self.key(for: url)
+    entriesLock.lock()
+    defer { entriesLock.unlock() }
+    if let existing = activeEntries.object(forKey: key as NSString) {
+      return existing
     }
+    let entry = CacheEntry(
+      url: url,
+      dataURL: directory.appendingPathComponent("\(key).bin"),
+      metaURL: directory.appendingPathComponent("\(key).json")
+    )
+    activeEntries.setObject(entry, forKey: key as NSString)
+    return entry
   }
 
   func clear(completion: @escaping () -> Void) {
@@ -55,10 +64,11 @@ final class VideoCache {
       // in-memory ranges. Otherwise an active entry keeps writing to an
       // orphaned (deleted) file while re-persisting metadata that claims
       // ranges the new on-disk file doesn't have — corrupting later playback.
-      if let entries = activeEntries.objectEnumerator()?.allObjects as? [CacheEntry] {
-        for entry in entries {
-          entry.reset()
-        }
+      entriesLock.lock()
+      let entries = activeEntries.objectEnumerator()?.allObjects as? [CacheEntry] ?? []
+      entriesLock.unlock()
+      for entry in entries {
+        entry.reset()
       }
       let files = (try? FileManager.default.contentsOfDirectory(
         at: directory,
@@ -106,7 +116,7 @@ final class VideoCache {
       for meta in sorted {
         guard size > maxSizeBytes else { break }
         let key = meta.deletingPathExtension().lastPathComponent
-        guard activeEntries.object(forKey: key as NSString) == nil else { continue }
+        guard activeEntry(for: key) == nil else { continue }
         let data = directory.appendingPathComponent("\(key).bin")
         let freed = Self.fileSize(data) + Self.fileSize(meta)
         try? fileManager.removeItem(at: data)

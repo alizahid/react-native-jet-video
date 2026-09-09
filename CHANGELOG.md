@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The inline renderer is now a single `AVPlayerViewController` per view (the expo-video approach), chrome hidden unless `controls`. Each player draws to one layer instead of two (the bare layer plus a hidden warm controller), the fullscreen zoom starts from the renderer already on screen, `controls` toggles chrome instead of rebuilding the surface, and Picture-in-Picture goes through the same controller. Fullscreen and PiP still use AVKit's private transition/start selectors; `enterFullscreen()` now rejects instead of falling back to a modal if they ever disappear.
+- Fabric's unmount now releases the view's player deterministically (`onDropView`); previously the release waited for JS garbage collection and was a no-op when it ran.
+- Fixed a wrong cached content length for `Content-Range: bytes x-y/*` replies to bounded range requests.
+- `VideoView` no longer marks every callback prop dirty on each parent re-render.
+- Peer range: `react-native-nitro-modules >= 0.36`.
+
 - Fullscreen enter/exit are now as smooth as the system's: the fullscreen controller no longer pauses the player as the exit lands (AVKit's `canPausePlaybackWhenExitingFullScreen`), which removed the rate re-sync stutter right after the shrink animation, and it renders aspect-fit like the fullscreen presentation itself, so the zoom no longer pops at its first frame.
 - Fullscreen no longer attaches or detaches anything from the player around the animations. Attaching or detaching an AVPlayerLayer makes a playing AVPlayer renegotiate its video pipeline — a visible frame hold about half a second later, mid-zoom or just after the exit landed. A chromeless view now keeps its fullscreen controller warm (hidden, attached) while it holds a player, the inline layer stays attached under a black cover during the presentation, and the controller is handed back afterwards. In controls mode the embedded controller zooms itself. Entering fullscreen also activates the audio session before the zoom, so an unmute made in `onFullscreenChange` doesn't reconfigure audio mid-animation.
 - Fixed a freshly mounted `autoplay` view staying on a still frame when it adopted a pooled player that the screen being popped had paused.

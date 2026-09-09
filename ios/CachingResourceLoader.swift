@@ -310,8 +310,10 @@ private final class RequestHandler {
     } else if http.statusCode == 206 {
       let contentRange = http.value(forHTTPHeaderField: "Content-Range")
       var total = contentRange?.split(separator: "/").last.flatMap { Int64($0) }
-      if total == nil, response.expectedContentLength > 0 {
-        // "Content-Range: bytes x-y/*" — derive the total from this window.
+      if total == nil, endOffset == nil, response.expectedContentLength > 0 {
+        // "Content-Range: bytes x-/*" — an open-ended request runs to the end
+        // of the resource, so the window's length gives the total. A bounded
+        // window's doesn't: it would record the window end as the file size.
         total = networkOffset + response.expectedContentLength
       }
       entry.setContentInfo(length: total, type: response.mimeType)

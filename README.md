@@ -78,7 +78,7 @@ Every `VideoView` draws its native player from one app-wide pool (5 by default, 
 
 - **Feed → post → back, no reload.** The post screen shows the same video as the feed cell, so it *is* the same player: it continues from the same frame the instant the screen appears, and hands back just as seamlessly when you pop. The cell under the pushed screen keeps rendering the player during the transition — nothing blanks.
 - **Scroll away and back, same position.** A cell that scrolls off keeps its player idle in the pool; scroll back and it resumes where it was. When the pool is full, the least recently used player nothing is displaying is released and its playhead remembered, so even an evicted video resumes at the right second.
-- **Bounded, everywhere.** Ten players is the ceiling across every list and every screen in the stack; fullscreen, PiP and on-screen players are never evicted.
+- **Bounded, everywhere.** `maxPlayers` is the ceiling across every list and every screen in the stack; fullscreen, PiP and on-screen players are never evicted.
 
 ```tsx
 // Same video in two places? Give both the same key (default: the source uri).

@@ -31,6 +31,14 @@ function notMounted(): never {
   throw new Error('VideoView is not mounted')
 }
 
+// `callback()` allocates a fresh wrapper object, so wrapping inline would
+// mark every callback prop dirty on each parent re-render.
+function useNitroCallback<T extends (...args: never[]) => void>(
+  fn: T | undefined
+) {
+  return useMemo(() => (fn ? callback(fn) : undefined), [fn])
+}
+
 // Promise-returning methods reject instead of throwing synchronously.
 function notMountedAsync(): Promise<never> {
   return Promise.reject(new Error('VideoView is not mounted'))
@@ -124,6 +132,18 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
       [onLoad]
     )
 
+    const nativeOnLoad = useNitroCallback(onLoad ? handleLoad : undefined)
+    const nativeOnProgress = useNitroCallback(onProgress)
+    const nativeOnEnd = useNitroCallback(onEnd)
+    const nativeOnError = useNitroCallback(onError)
+    const nativeOnPlaybackStateChange = useNitroCallback(onPlaybackStateChange)
+    const nativeOnFullscreenChange = useNitroCallback(onFullscreenChange)
+    const nativeOnPictureInPictureChange = useNitroCallback(
+      onPictureInPictureChange
+    )
+    const nativeOnMutedChange = useNitroCallback(onMutedChange)
+    const nativeOnVisibilityChange = useNitroCallback(onVisibilityChange)
+
     return (
       <NativeVideoView
         hybridRef={hybridRef}
@@ -144,25 +164,15 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         minVisibleFraction={minVisibleFraction}
         style={style}
         testID={testID}
-        onLoad={onLoad ? callback(handleLoad) : undefined}
-        onProgress={onProgress ? callback(onProgress) : undefined}
-        onEnd={onEnd ? callback(onEnd) : undefined}
-        onError={onError ? callback(onError) : undefined}
-        onPlaybackStateChange={
-          onPlaybackStateChange ? callback(onPlaybackStateChange) : undefined
-        }
-        onFullscreenChange={
-          onFullscreenChange ? callback(onFullscreenChange) : undefined
-        }
-        onPictureInPictureChange={
-          onPictureInPictureChange
-            ? callback(onPictureInPictureChange)
-            : undefined
-        }
-        onMutedChange={onMutedChange ? callback(onMutedChange) : undefined}
-        onVisibilityChange={
-          onVisibilityChange ? callback(onVisibilityChange) : undefined
-        }
+        onLoad={nativeOnLoad}
+        onProgress={nativeOnProgress}
+        onEnd={nativeOnEnd}
+        onError={nativeOnError}
+        onPlaybackStateChange={nativeOnPlaybackStateChange}
+        onFullscreenChange={nativeOnFullscreenChange}
+        onPictureInPictureChange={nativeOnPictureInPictureChange}
+        onMutedChange={nativeOnMutedChange}
+        onVisibilityChange={nativeOnVisibilityChange}
       />
     )
   }

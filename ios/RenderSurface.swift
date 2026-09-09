@@ -2,25 +2,9 @@ import AVFoundation
 import ImageIO
 import UIKit
 
-/// A plain UIView backed by an AVPlayerLayer — the chrome-less render surface
-/// used when `controls` is off (the cheap path for feed cells).
-final class PlayerLayerView: UIView {
-  override class var layerClass: AnyClass { AVPlayerLayer.self }
-
-  var playerLayer: AVPlayerLayer {
-    // swiftlint:disable-next-line force_cast
-    layer as! AVPlayerLayer
-  }
-
-  var player: AVPlayer? {
-    get { playerLayer.player }
-    set { playerLayer.player = newValue }
-  }
-
-  var resizeMode: ResizeMode = .cover {
-    didSet { playerLayer.videoGravity = Self.gravity(for: resizeMode) }
-  }
-
+/// The view Fabric mounts. It hosts the inline AVPlayerViewController's view
+/// (the only renderer) and the poster, and reports window changes.
+final class SurfaceView: UIView {
   var onWindowChanged: (() -> Void)?
 
   override func didMoveToWindow() {
@@ -31,7 +15,7 @@ final class PlayerLayerView: UIView {
   override init(frame: CGRect) {
     super.init(frame: frame)
     backgroundColor = .black
-    playerLayer.videoGravity = Self.gravity(for: resizeMode)
+    clipsToBounds = true
   }
 
   @available(*, unavailable)
