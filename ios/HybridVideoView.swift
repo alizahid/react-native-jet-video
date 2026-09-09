@@ -17,9 +17,18 @@ class HybridVideoView: HybridVideoViewSpec {
   private var controlsReadyObservation: NSKeyValueObservation?
   private var mutedObservation: NSKeyValueObservation?
   private var embeddedController: AVPlayerViewController?
+  /// Fullscreen renderer kept warm — hidden, attached to the player — while
+  /// this view renders chromeless. Attaching an AVPlayerLayer to a playing
+  /// AVPlayer makes it renegotiate its video pipeline (a frame hold ~0.5s
+  /// later), so the controller AVKit zooms into fullscreen is attached at
+  /// rest, and the inline layer stays attached throughout — only covered.
+  private var fullscreenController: AVPlayerViewController?
+  /// Covers the inline layer while a fullscreen presentation owns the screen.
+  private let curtain = UIView()
   // Resolves the exitFullscreen() promise for the embedded-controls surface,
   // where AVKit drives the transition and completion arrives via delegate.
   var pendingFullscreenExitCompletion: (() -> Void)?
+  var pendingFullscreenEnterCompletion: (() -> Void)?
 
   /// True while the embedded AVPlayerViewController owns rendering (the
   /// inline surface layer is deliberately blank then).
@@ -39,6 +48,9 @@ class HybridVideoView: HybridVideoViewSpec {
   // so reattaching should resume it. Coordinated views are excluded — the
   // election decides who plays.
   private var resumePlaybackOnAttach = false
+  /// A view's first time on a window is a fresh mount as far as autoplay is
+  /// concerned — even when it adopts a pooled player another screen paused.
+  private var hasAttachedBefore = false
 
   var view: UIView { surface }
 
@@ -54,18 +66,21 @@ class HybridVideoView: HybridVideoViewSpec {
     // The parent VC's containment retains the embedded controller (and via
     // controller.player, the whole player stack) past this view's dealloc —
     // detach it explicitly. UIKit work must run on main; deinit may not be.
-    if let controller = embeddedController {
+    for controller in [embeddedController, fullscreenController].compactMap({ $0 }) {
       DispatchQueue.main.async {
-        controller.willMove(toParent: nil)
-        controller.view.removeFromSuperview()
-        controller.removeFromParent()
-        controller.player = nil
+        FullscreenPresenter.tearDown(controller)
       }
     }
   }
 
   override init() {
     super.init()
+
+    curtain.backgroundColor = .black
+    curtain.isHidden = true
+    curtain.frame = surface.bounds
+    curtain.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    surface.addSubview(curtain)
 
     posterView.isHidden = true
     posterView.translatesAutoresizingMaskIntoConstraints = false
@@ -112,6 +127,7 @@ class HybridVideoView: HybridVideoViewSpec {
       posterView.isHidden = posterUri == nil
       autoplayOverride = .none
       resumePlaybackOnAttach = false
+      hasAttachedBefore = false
       coordinator?.noteSourceChanged(self)
     } else if let source {
       engine?.setSource(source)
@@ -278,11 +294,30 @@ class HybridVideoView: HybridVideoViewSpec {
         promise.reject(withError: VideoViewError.noSource)
         return
       }
-      FullscreenPresenter.shared.enter(for: self, engine: engine) { error in
-        if let error {
-          promise.reject(withError: error)
-        } else {
+      if let embeddedController, FullscreenPresenter.supportsAVKitTransition(embeddedController) {
+        // Controls mode: the embedded controller is the renderer — AVKit
+        // zooms it straight into fullscreen, nothing to attach.
+        pendingFullscreenEnterCompletion = {
           promise.resolve(withResult: ())
+        }
+        FullscreenPresenter.performTransition(
+          embeddedController,
+          selectorName: "enterFullScreenAnimated:completionHandler:"
+        )
+        return
+      }
+      // Fullscreen is where apps unmute. Activating the audio session is a
+      // route change on real hardware, and one during the zoom shows as a
+      // frame hold — so activate now, at rest, and any unmute made in
+      // onFullscreenChange finds the session ready.
+      AudioSessionManager.shared.prepare(muted: muted, mixMode: audioMixMode, activate: true) { [weak self] in
+        guard let self else { return }
+        FullscreenPresenter.shared.enter(for: self, engine: engine) { error in
+          if let error {
+            promise.reject(withError: error)
+          } else {
+            promise.resolve(withResult: ())
+          }
         }
       }
     }
@@ -324,7 +359,10 @@ class HybridVideoView: HybridVideoViewSpec {
     isFullscreen = active
     coordinator?.noteStateInvalidated()
     onFullscreenChange?(active)
-    if !active {
+    if active {
+      pendingFullscreenEnterCompletion?()
+      pendingFullscreenEnterCompletion = nil
+    } else {
       pendingFullscreenExitCompletion?()
       pendingFullscreenExitCompletion = nil
     }
@@ -497,8 +535,7 @@ class HybridVideoView: HybridVideoViewSpec {
       applyPendingControlsUpdate()
     }
     self.engine = nil
-    surface.player = nil
-    embeddedController?.player = nil
+    setInlinePlayer(nil)
     pipManager.teardown()
     PlayerPool.shared.release(engine, from: self)
   }
@@ -523,8 +560,7 @@ class HybridVideoView: HybridVideoViewSpec {
     engine.delegate = nil
     mutedObservation = nil
     self.engine = nil
-    surface.player = nil
-    embeddedController?.player = nil
+    setInlinePlayer(nil)
     pipManager.teardown()
     if posterUri != nil {
       posterView.isHidden = false
@@ -538,11 +574,7 @@ class HybridVideoView: HybridVideoViewSpec {
     mirroredEngine = engine
     engine.mirrorCount += 1
     if !FullscreenPresenter.shared.isPresenting(engine: engine) {
-      if let embeddedController {
-        embeddedController.player = engine.player
-      } else {
-        surface.player = engine.player
-      }
+      setInlinePlayer(engine.player)
     }
   }
 
@@ -551,8 +583,7 @@ class HybridVideoView: HybridVideoViewSpec {
     mirroredEngine.mirrorCount -= 1
     self.mirroredEngine = nil
     if engine == nil {
-      surface.player = nil
-      embeddedController?.player = nil
+      setInlinePlayer(nil)
       if posterUri != nil {
         posterView.isHidden = false
       }
@@ -561,22 +592,102 @@ class HybridVideoView: HybridVideoViewSpec {
 
   // MARK: - Inline rendering handoff (fullscreen presenter)
 
-  /// Blanks every inline render surface while the fullscreen presenter owns
-  /// this engine's rendering.
+  /// Covers the inline surface while the fullscreen presenter owns the
+  /// screen. The layer keeps its player: detaching it here (mid-zoom) made
+  /// the player renegotiate its pipeline and hold a frame during the animation.
   func suspendInlineRendering() {
-    surface.player = nil
-    embeddedController?.player = nil
+    curtain.isHidden = false
   }
 
-  /// Hands rendering back to whichever inline surface is active. In controls
-  /// mode the embedded controller owns rendering and the bare layer must stay
-  /// blank.
+  /// Uncovers the inline surface and makes sure every inline renderer has
+  /// the current player. Idempotent.
   func resumeInlineRendering() {
-    let player = engine?.player ?? mirroredEngine?.player
+    curtain.isHidden = true
+    setInlinePlayer(engine?.player ?? mirroredEngine?.player)
+  }
+
+  /// The one place inline renderers get their player: the embedded controls
+  /// controller, or the bare layer plus the warm fullscreen controller.
+  /// Never re-sets an already-attached player — that alone re-attaches the
+  /// layer, with the frame hold that brings.
+  private func setInlinePlayer(_ player: AVPlayer?) {
     if let embeddedController {
-      embeddedController.player = player
-    } else {
+      if embeddedController.player !== player {
+        embeddedController.player = player
+      }
+      return
+    }
+    if surface.player !== player {
       surface.player = player
+    }
+    if player != nil {
+      ensureFullscreenController()
+    }
+    if let fullscreenController, fullscreenController.player !== player {
+      fullscreenController.player = player
+    }
+  }
+
+  private var isPresentedFullscreen: Bool {
+    engine.map { FullscreenPresenter.shared.isPresenting(engine: $0) } ?? false
+  }
+
+  // MARK: - Warm fullscreen controller
+
+  private func ensureFullscreenController() {
+    guard fullscreenController == nil, embeddedController == nil,
+          surface.window != nil, let parent = surface.nearestViewController else {
+      // No window/VC yet — retried from didMoveToWindow.
+      return
+    }
+    let controller = AVPlayerViewController()
+    controller.updatesNowPlayingInfoCenter = false
+    controller.showsPlaybackControls = false
+    controller.videoGravity = .resizeAspect
+    controller.view.backgroundColor = .clear
+    controller.view.isHidden = true
+    controller.view.isUserInteractionEnabled = false
+    controller.view.frame = surface.bounds
+    controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    FullscreenPresenter.keepPlayingThroughExit(controller)
+    parent.addChild(controller)
+    surface.insertSubview(controller.view, belowSubview: posterView)
+    controller.didMove(toParent: parent)
+    fullscreenController = controller
+  }
+
+  private func tearDownFullscreenController() {
+    guard let controller = fullscreenController else { return }
+    fullscreenController = nil
+    FullscreenPresenter.tearDown(controller)
+  }
+
+  /// The presenter takes the warm controller for the presentation…
+  func takeFullscreenController() -> AVPlayerViewController? {
+    defer { fullscreenController = nil }
+    return fullscreenController
+  }
+
+  /// …and hands it back afterwards, still attached to the player. It stays
+  /// on screen a moment longer: AVKit's presentation had the inline layer
+  /// off the window, and a layer rejoining the render tree renegotiates
+  /// its pipeline right around the landing — the controller's layer never
+  /// left, so it covers that, then hides once the inline layer has settled.
+  func adoptFullscreenController(_ controller: AVPlayerViewController) {
+    guard embeddedController == nil, fullscreenController == nil else {
+      FullscreenPresenter.tearDown(controller)
+      return
+    }
+    controller.delegate = nil
+    controller.showsPlaybackControls = false
+    controller.videoGravity = PlayerLayerView.gravity(for: resizeMode)
+    controller.view.isUserInteractionEnabled = false
+    controller.view.frame = surface.bounds
+    fullscreenController = controller
+    setInlinePlayer(engine?.player ?? mirroredEngine?.player)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self, weak controller] in
+      guard let self, let controller, fullscreenController === controller else { return }
+      controller.view.isHidden = true
     }
   }
 
@@ -602,10 +713,6 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
-  private var isPresentedFullscreen: Bool {
-    engine.map { FullscreenPresenter.shared.isPresenting(engine: $0) } ?? false
-  }
-
   private func updateControlsSurface() {
     if isPresentedFullscreen || isFullscreen {
       pendingControlsUpdate = true
@@ -618,6 +725,7 @@ class HybridVideoView: HybridVideoViewSpec {
         // No window/VC yet — retried from didMoveToWindow.
         return
       }
+      tearDownFullscreenController()
       let controller = AVPlayerViewController()
       // Registering as the Now Playing app forcibly interrupts other apps'
       // audio — never do it implicitly.
@@ -695,7 +803,10 @@ class HybridVideoView: HybridVideoViewSpec {
         // hand it over now rather than pausing it out from under them.
         releaseEngine()
       } else if !isInPictureInPicture, !isFullscreen {
-        resumePlaybackOnAttach = isPlaying
+        // A play still waiting on the audio-session gate counts: a screen
+        // push briefly detaches and re-attaches the view, and the request
+        // must survive that.
+        resumePlaybackOnAttach = isPlaying || engine?.playRequested == true
         engine?.pause(reason: .system)
         // The player stays live (instant pop-back); the pool's LRU eviction
         // reclaims it if the slot is needed.
@@ -707,7 +818,12 @@ class HybridVideoView: HybridVideoViewSpec {
       adoptSharedLiveEngine()
       // Props (including source) are set before the view joins a window, so
       // autoplay for a still-loading source applies here, not at prop-set.
-      if engine == nil || engine?.status == .loading {
+      let firstAttach = !hasAttachedBefore
+      hasAttachedBefore = true
+      if engine == nil || engine?.status == .loading || firstAttach {
+        // Nothing playing yet, or a fresh mount: autoplay applies now — a
+        // pooled player paused by the screen that popped must not leave a
+        // new `autoplay` view sitting on a still frame.
         applyAutoplay()
       } else if resumePlaybackOnAttach, autoplayMode != .whenvisible {
         engine?.play(reason: .system)
@@ -715,6 +831,8 @@ class HybridVideoView: HybridVideoViewSpec {
       resumePlaybackOnAttach = false
       if controls, embeddedController == nil {
         updateControlsSurface()
+      } else if !isPresentedFullscreen, !isFullscreen {
+        resumeInlineRendering()
       }
     }
   }

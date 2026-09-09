@@ -270,7 +270,12 @@ final class PlayerEngine {
 
   // MARK: - Controls
 
+  /// A play has been asked for and not yet countermanded by a pause — true
+  /// from the request, through the audio-session gate, until a pause.
+  private(set) var playRequested = false
+
   func play(reason: PlaybackChangeReason) {
+    playRequested = true
     if status == .error {
       retry()
     }
@@ -294,6 +299,7 @@ final class PlayerEngine {
   }
 
   func pause(reason: PlaybackChangeReason) {
+    playRequested = false
     playIntent += 1
     transitionHold = false
     pendingReason = reason
