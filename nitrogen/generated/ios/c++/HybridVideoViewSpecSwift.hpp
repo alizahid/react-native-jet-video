@@ -143,18 +143,18 @@ namespace margelo::nitro::jetvideo {
     inline void setControls(bool controls) noexcept override {
       _swiftPart.setControls(std::forward<decltype(controls)>(controls));
     }
-    inline std::optional<std::string> getPosterUri() noexcept override {
+    inline std::string getPosterUri() noexcept override {
       auto __result = _swiftPart.getPosterUri();
       return __result;
     }
-    inline void setPosterUri(const std::optional<std::string>& posterUri) noexcept override {
+    inline void setPosterUri(const std::string& posterUri) noexcept override {
       _swiftPart.setPosterUri(posterUri);
     }
-    inline std::optional<std::string> getPlayerKey() noexcept override {
+    inline std::string getPlayerKey() noexcept override {
       auto __result = _swiftPart.getPlayerKey();
       return __result;
     }
-    inline void setPlayerKey(const std::optional<std::string>& playerKey) noexcept override {
+    inline void setPlayerKey(const std::string& playerKey) noexcept override {
       _swiftPart.setPlayerKey(playerKey);
     }
     inline bool getAllowsPictureInPicture() noexcept override {
@@ -176,11 +176,11 @@ namespace margelo::nitro::jetvideo {
     inline void setAudioMixMode(AudioMixMode audioMixMode) noexcept override {
       _swiftPart.setAudioMixMode(static_cast<int>(audioMixMode));
     }
-    inline std::optional<std::string> getCoordinatorGroup() noexcept override {
+    inline std::string getCoordinatorGroup() noexcept override {
       auto __result = _swiftPart.getCoordinatorGroup();
       return __result;
     }
-    inline void setCoordinatorGroup(const std::optional<std::string>& coordinatorGroup) noexcept override {
+    inline void setCoordinatorGroup(const std::string& coordinatorGroup) noexcept override {
       _swiftPart.setCoordinatorGroup(coordinatorGroup);
     }
     inline VisibilityAxis getVisibilityAxis() noexcept override {
@@ -196,67 +196,67 @@ namespace margelo::nitro::jetvideo {
     inline void setMinVisibleFraction(double minVisibleFraction) noexcept override {
       _swiftPart.setMinVisibleFraction(std::forward<decltype(minVisibleFraction)>(minVisibleFraction));
     }
-    inline std::optional<std::function<void(const LoadEvent& /* event */)>> getOnLoad() noexcept override {
+    inline std::function<void(const LoadEvent& /* event */)> getOnLoad() noexcept override {
       auto __result = _swiftPart.getOnLoad();
       return __result;
     }
-    inline void setOnLoad(const std::optional<std::function<void(const LoadEvent& /* event */)>>& onLoad) noexcept override {
+    inline void setOnLoad(const std::function<void(const LoadEvent& /* event */)>& onLoad) noexcept override {
       _swiftPart.setOnLoad(onLoad);
     }
-    inline std::optional<std::function<void(const ProgressEvent& /* event */)>> getOnProgress() noexcept override {
+    inline std::function<void(const ProgressEvent& /* event */)> getOnProgress() noexcept override {
       auto __result = _swiftPart.getOnProgress();
       return __result;
     }
-    inline void setOnProgress(const std::optional<std::function<void(const ProgressEvent& /* event */)>>& onProgress) noexcept override {
+    inline void setOnProgress(const std::function<void(const ProgressEvent& /* event */)>& onProgress) noexcept override {
       _swiftPart.setOnProgress(onProgress);
     }
-    inline std::optional<std::function<void()>> getOnEnd() noexcept override {
+    inline std::function<void()> getOnEnd() noexcept override {
       auto __result = _swiftPart.getOnEnd();
       return __result;
     }
-    inline void setOnEnd(const std::optional<std::function<void()>>& onEnd) noexcept override {
+    inline void setOnEnd(const std::function<void()>& onEnd) noexcept override {
       _swiftPart.setOnEnd(onEnd);
     }
-    inline std::optional<std::function<void(const VideoErrorEvent& /* event */)>> getOnError() noexcept override {
+    inline std::function<void(const VideoErrorEvent& /* event */)> getOnError() noexcept override {
       auto __result = _swiftPart.getOnError();
       return __result;
     }
-    inline void setOnError(const std::optional<std::function<void(const VideoErrorEvent& /* event */)>>& onError) noexcept override {
+    inline void setOnError(const std::function<void(const VideoErrorEvent& /* event */)>& onError) noexcept override {
       _swiftPart.setOnError(onError);
     }
-    inline std::optional<std::function<void(const PlaybackStateEvent& /* event */)>> getOnPlaybackStateChange() noexcept override {
+    inline std::function<void(const PlaybackStateEvent& /* event */)> getOnPlaybackStateChange() noexcept override {
       auto __result = _swiftPart.getOnPlaybackStateChange();
       return __result;
     }
-    inline void setOnPlaybackStateChange(const std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>& onPlaybackStateChange) noexcept override {
+    inline void setOnPlaybackStateChange(const std::function<void(const PlaybackStateEvent& /* event */)>& onPlaybackStateChange) noexcept override {
       _swiftPart.setOnPlaybackStateChange(onPlaybackStateChange);
     }
-    inline std::optional<std::function<void(bool /* isFullscreen */)>> getOnFullscreenChange() noexcept override {
+    inline std::function<void(bool /* isFullscreen */)> getOnFullscreenChange() noexcept override {
       auto __result = _swiftPart.getOnFullscreenChange();
       return __result;
     }
-    inline void setOnFullscreenChange(const std::optional<std::function<void(bool /* isFullscreen */)>>& onFullscreenChange) noexcept override {
+    inline void setOnFullscreenChange(const std::function<void(bool /* isFullscreen */)>& onFullscreenChange) noexcept override {
       _swiftPart.setOnFullscreenChange(onFullscreenChange);
     }
-    inline std::optional<std::function<void(bool /* isActive */)>> getOnPictureInPictureChange() noexcept override {
+    inline std::function<void(bool /* isActive */)> getOnPictureInPictureChange() noexcept override {
       auto __result = _swiftPart.getOnPictureInPictureChange();
       return __result;
     }
-    inline void setOnPictureInPictureChange(const std::optional<std::function<void(bool /* isActive */)>>& onPictureInPictureChange) noexcept override {
+    inline void setOnPictureInPictureChange(const std::function<void(bool /* isActive */)>& onPictureInPictureChange) noexcept override {
       _swiftPart.setOnPictureInPictureChange(onPictureInPictureChange);
     }
-    inline std::optional<std::function<void(bool /* muted */)>> getOnMutedChange() noexcept override {
+    inline std::function<void(bool /* muted */)> getOnMutedChange() noexcept override {
       auto __result = _swiftPart.getOnMutedChange();
       return __result;
     }
-    inline void setOnMutedChange(const std::optional<std::function<void(bool /* muted */)>>& onMutedChange) noexcept override {
+    inline void setOnMutedChange(const std::function<void(bool /* muted */)>& onMutedChange) noexcept override {
       _swiftPart.setOnMutedChange(onMutedChange);
     }
-    inline std::optional<std::function<void(double /* visibleFraction */)>> getOnVisibilityChange() noexcept override {
+    inline std::function<void(double /* visibleFraction */)> getOnVisibilityChange() noexcept override {
       auto __result = _swiftPart.getOnVisibilityChange();
       return __result;
     }
-    inline void setOnVisibilityChange(const std::optional<std::function<void(double /* visibleFraction */)>>& onVisibilityChange) noexcept override {
+    inline void setOnVisibilityChange(const std::function<void(double /* visibleFraction */)>& onVisibilityChange) noexcept override {
       _swiftPart.setOnVisibilityChange(onVisibilityChange);
     }
 

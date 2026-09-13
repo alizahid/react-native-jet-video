@@ -96,22 +96,22 @@ namespace margelo::nitro::jetvideo::views {
         throw std::runtime_error(std::string("VideoView.controls: ") + exc.what());
       }
     }()),
-    posterUri([&]() -> CachedProp<std::optional<std::string>> {
+    posterUri([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("posterUri", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.posterUri;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.posterUri);
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.posterUri);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.posterUri: ") + exc.what());
       }
     }()),
-    playerKey([&]() -> CachedProp<std::optional<std::string>> {
+    playerKey([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("playerKey", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.playerKey;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.playerKey);
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.playerKey);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.playerKey: ") + exc.what());
       }
@@ -146,12 +146,12 @@ namespace margelo::nitro::jetvideo::views {
         throw std::runtime_error(std::string("VideoView.audioMixMode: ") + exc.what());
       }
     }()),
-    coordinatorGroup([&]() -> CachedProp<std::optional<std::string>> {
+    coordinatorGroup([&]() -> CachedProp<std::string> {
       try {
         const react::RawValue* rawValue = rawProps.at("coordinatorGroup", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.coordinatorGroup;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::string>>::fromRawValue(*runtime, value, sourceProps.coordinatorGroup);
+        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.coordinatorGroup);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.coordinatorGroup: ") + exc.what());
       }
@@ -176,92 +176,92 @@ namespace margelo::nitro::jetvideo::views {
         throw std::runtime_error(std::string("VideoView.minVisibleFraction: ") + exc.what());
       }
     }()),
-    onLoad([&]() -> CachedProp<std::optional<std::function<void(const LoadEvent& /* event */)>>> {
+    onLoad([&]() -> CachedProp<std::function<void(const LoadEvent& /* event */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onLoad", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onLoad;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const LoadEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onLoad);
+        return CachedProp<std::function<void(const LoadEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onLoad);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onLoad: ") + exc.what());
       }
     }()),
-    onProgress([&]() -> CachedProp<std::optional<std::function<void(const ProgressEvent& /* event */)>>> {
+    onProgress([&]() -> CachedProp<std::function<void(const ProgressEvent& /* event */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onProgress", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onProgress;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const ProgressEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onProgress);
+        return CachedProp<std::function<void(const ProgressEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onProgress);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onProgress: ") + exc.what());
       }
     }()),
-    onEnd([&]() -> CachedProp<std::optional<std::function<void()>>> {
+    onEnd([&]() -> CachedProp<std::function<void()>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onEnd", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onEnd;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void()>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onEnd);
+        return CachedProp<std::function<void()>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onEnd);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onEnd: ") + exc.what());
       }
     }()),
-    onError([&]() -> CachedProp<std::optional<std::function<void(const VideoErrorEvent& /* event */)>>> {
+    onError([&]() -> CachedProp<std::function<void(const VideoErrorEvent& /* event */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onError;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const VideoErrorEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
+        return CachedProp<std::function<void(const VideoErrorEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onError: ") + exc.what());
       }
     }()),
-    onPlaybackStateChange([&]() -> CachedProp<std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>> {
+    onPlaybackStateChange([&]() -> CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onPlaybackStateChange", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onPlaybackStateChange;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPlaybackStateChange);
+        return CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPlaybackStateChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onPlaybackStateChange: ") + exc.what());
       }
     }()),
-    onFullscreenChange([&]() -> CachedProp<std::optional<std::function<void(bool /* isFullscreen */)>>> {
+    onFullscreenChange([&]() -> CachedProp<std::function<void(bool /* isFullscreen */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onFullscreenChange", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onFullscreenChange;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* isFullscreen */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onFullscreenChange);
+        return CachedProp<std::function<void(bool /* isFullscreen */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onFullscreenChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onFullscreenChange: ") + exc.what());
       }
     }()),
-    onPictureInPictureChange([&]() -> CachedProp<std::optional<std::function<void(bool /* isActive */)>>> {
+    onPictureInPictureChange([&]() -> CachedProp<std::function<void(bool /* isActive */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onPictureInPictureChange", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onPictureInPictureChange;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* isActive */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPictureInPictureChange);
+        return CachedProp<std::function<void(bool /* isActive */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPictureInPictureChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onPictureInPictureChange: ") + exc.what());
       }
     }()),
-    onMutedChange([&]() -> CachedProp<std::optional<std::function<void(bool /* muted */)>>> {
+    onMutedChange([&]() -> CachedProp<std::function<void(bool /* muted */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onMutedChange", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onMutedChange;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(bool /* muted */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMutedChange);
+        return CachedProp<std::function<void(bool /* muted */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMutedChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onMutedChange: ") + exc.what());
       }
     }()),
-    onVisibilityChange([&]() -> CachedProp<std::optional<std::function<void(double /* visibleFraction */)>>> {
+    onVisibilityChange([&]() -> CachedProp<std::function<void(double /* visibleFraction */)>> {
       try {
         const react::RawValue* rawValue = rawProps.at("onVisibilityChange", nullptr, nullptr);
         if (rawValue == nullptr) return sourceProps.onVisibilityChange;
         const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(double /* visibleFraction */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onVisibilityChange);
+        return CachedProp<std::function<void(double /* visibleFraction */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onVisibilityChange);
       } catch (const std::exception& exc) {
         throw std::runtime_error(std::string("VideoView.onVisibilityChange: ") + exc.what());
       }

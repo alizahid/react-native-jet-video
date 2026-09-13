@@ -50,7 +50,12 @@ class HybridVideoView: HybridVideoViewSpec {
   var view: UIView { surface }
 
   /// Identity of this view's player in the pool.
-  private var resolvedKey: String? { playerKey ?? source?.uri }
+  private var resolvedKey: String? { nonEmpty(playerKey) ?? source?.uri }
+  private var poster: String? { nonEmpty(posterUri) }
+
+  /// The spec has no optional props (Fabric clears them with a null Nitro
+  /// rejects), so "" is the wire form of nil for strings.
+  private func nonEmpty(_ value: String) -> String? { value.isEmpty ? nil : value }
 
   /// Fabric dropped the view (main thread): give the engine back now. The
   /// Swift object itself lives on until JS collects its hybrid ref, so
@@ -102,14 +107,14 @@ class HybridVideoView: HybridVideoViewSpec {
   // MARK: - Props
 
   var source: VideoSource? = nil {
-    didSet { handleIdentityChange(oldKey: playerKey ?? oldValue?.uri) }
+    didSet { handleIdentityChange(oldKey: nonEmpty(playerKey) ?? oldValue?.uri) }
   }
 
   /// Explicit player identity (defaults to the source uri). Views sharing a
   /// key share one player — the feed cell and the post screen it opens
   /// continue each other seamlessly.
-  var playerKey: String? = nil {
-    didSet { handleIdentityChange(oldKey: oldValue ?? source?.uri) }
+  var playerKey: String = "" {
+    didSet { handleIdentityChange(oldKey: nonEmpty(oldValue) ?? source?.uri) }
   }
 
   private func handleIdentityChange(oldKey: String?) {
@@ -118,7 +123,7 @@ class HybridVideoView: HybridVideoViewSpec {
       // intact) for whoever shows that video next.
       releaseEngine()
       dropMirror()
-      posterView.isHidden = posterUri == nil
+      posterView.isHidden = poster == nil
       autoplayOverride = .none
       resumePlaybackOnAttach = false
       hasAttachedBefore = false
@@ -174,10 +179,10 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
-  var posterUri: String? = nil {
+  var posterUri: String = "" {
     didSet {
-      posterView.setPoster(uri: posterUri)
-      if posterUri == nil {
+      posterView.setPoster(uri: poster)
+      if poster == nil {
         posterView.isHidden = true
       } else if controller?.isReadyForDisplay != true {
         posterView.isHidden = false
@@ -218,22 +223,22 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
-  var coordinatorGroup: String? = nil {
+  var coordinatorGroup: String = "" {
     didSet {
       guard coordinatorGroup != oldValue else { return }
       updateCoordinatorRegistration()
     }
   }
 
-  var onLoad: ((LoadEvent) -> Void)? = nil
-  var onProgress: ((ProgressEvent) -> Void)? = nil
-  var onEnd: (() -> Void)? = nil
-  var onError: ((VideoErrorEvent) -> Void)? = nil
-  var onPlaybackStateChange: ((PlaybackStateEvent) -> Void)? = nil
-  var onFullscreenChange: ((Bool) -> Void)? = nil
-  var onPictureInPictureChange: ((Bool) -> Void)? = nil
-  var onMutedChange: ((Bool) -> Void)? = nil
-  var onVisibilityChange: ((Double) -> Void)? = nil
+  var onLoad: (LoadEvent) -> Void = { _ in }
+  var onProgress: (ProgressEvent) -> Void = { _ in }
+  var onEnd: () -> Void = {}
+  var onError: (VideoErrorEvent) -> Void = { _ in }
+  var onPlaybackStateChange: (PlaybackStateEvent) -> Void = { _ in }
+  var onFullscreenChange: (Bool) -> Void = { _ in }
+  var onPictureInPictureChange: (Bool) -> Void = { _ in }
+  var onMutedChange: (Bool) -> Void = { _ in }
+  var onVisibilityChange: (Double) -> Void = { _ in }
 
   // MARK: - Methods
 
@@ -351,7 +356,7 @@ class HybridVideoView: HybridVideoViewSpec {
   func fullscreenTransition(active: Bool) {
     isFullscreen = active
     coordinator?.noteStateInvalidated()
-    onFullscreenChange?(active)
+    onFullscreenChange(active)
     if active {
       pendingFullscreenEnterCompletion?()
       pendingFullscreenEnterCompletion = nil
@@ -463,7 +468,7 @@ class HybridVideoView: HybridVideoViewSpec {
   func pictureInPictureDidChange(active: Bool) {
     isInPictureInPicture = active
     coordinator?.noteStateInvalidated()
-    onPictureInPictureChange?(active)
+    onPictureInPictureChange(active)
     if active {
       finishPiPStart(error: nil)
     }
@@ -566,7 +571,7 @@ class HybridVideoView: HybridVideoViewSpec {
       DispatchQueue.main.async {
         guard let self else { return }
         if player.isMuted != self.muted {
-          self.onMutedChange?(player.isMuted)
+          self.onMutedChange(player.isMuted)
         }
       }
     }
@@ -621,7 +626,7 @@ class HybridVideoView: HybridVideoViewSpec {
     self.engine = nil
     setInlinePlayer(nil)
     tearDownPiP()
-    if posterUri != nil {
+    if poster != nil {
       posterView.isHidden = false
     }
     coordinator?.noteStateInvalidated()
@@ -641,7 +646,7 @@ class HybridVideoView: HybridVideoViewSpec {
     self.mirroredEngine = nil
     if engine == nil {
       setInlinePlayer(nil)
-      if posterUri != nil {
+      if poster != nil {
         posterView.isHidden = false
       }
     }
@@ -790,7 +795,7 @@ class HybridVideoView: HybridVideoViewSpec {
     // `whenVisible` ones take part in the election.
     let shouldRegister = surface.window != nil && source != nil
     if shouldRegister {
-      let target = PlaybackCoordinator.coordinator(forGroup: coordinatorGroup)
+      let target = PlaybackCoordinator.coordinator(forGroup: nonEmpty(coordinatorGroup))
       if coordinator !== target {
         coordinator?.unregister(self)
         coordinator = target
@@ -896,23 +901,23 @@ extension HybridVideoView: PlayerEngineDelegate {
         break
       }
     }
-    onPlaybackStateChange?(PlaybackStateEvent(status: status, reason: reason))
+    onPlaybackStateChange(PlaybackStateEvent(status: status, reason: reason))
   }
 
   func engine(_ engine: PlayerEngine, didLoad event: LoadEvent) {
-    onLoad?(event)
+    onLoad(event)
   }
 
   func engine(_ engine: PlayerEngine, didProgress event: ProgressEvent) {
-    onProgress?(event)
+    onProgress(event)
   }
 
   func engineDidPlayToEnd(_ engine: PlayerEngine) {
-    onEnd?()
+    onEnd()
   }
 
   func engine(_ engine: PlayerEngine, didFail error: VideoErrorEvent) {
-    onError?(error)
+    onError(error)
   }
 }
 

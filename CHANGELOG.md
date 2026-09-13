@@ -36,6 +36,10 @@ The first stable release. Everything since 0.1.0, curated:
 - New APIs: `clearCache()`, `getCacheSize()`, `configureCache({ maxSizeBytes })`, and a per-source opt-out (`source={{ uri, cache: false }}`).
 - One shared URL session, metadata read lazily off the main thread, throttled metadata writes and eviction scans. `clearCache()` during playback no longer corrupts active entries.
 
+### Recycling
+
+- No native prop is optional any more. Fabric clears an optional prop with an explicit `null`, which Nitro's prop parser rejects as a fatal JS error, so a recycled cell moving from a video with a poster to one without (or dropping a handler) crashed the app. Empty string is the wire form of "unset" for `posterUri`, `playerKey` and `coordinatorGroup`; a missing callback is sent as a noop.
+
 ### Breaking changes since 0.1.0
 
 - `onProgress` reports `bufferedPosition` (absolute position buffered contiguously ahead of the playhead, what scrubbers draw) instead of `bufferedDuration`.

@@ -58,6 +58,12 @@ export interface VideoErrorEvent {
   message: string
 }
 
+/**
+ * Nothing here is optional on purpose. Clearing an optional prop makes Fabric
+ * send an explicit null, which Nitro's prop parser rejects (a recycled cell
+ * that loses its poster took the whole app down). Empty string means "unset"
+ * for the strings; callbacks always get a function.
+ */
 export interface VideoViewProps extends HybridViewProps {
   source?: VideoSource
   autoplayMode: AutoplayMode
@@ -66,28 +72,26 @@ export interface VideoViewProps extends HybridViewProps {
   volume: number
   resizeMode: ResizeMode
   controls: boolean
-  posterUri?: string
+  posterUri: string
   /** Player identity in the pool; defaults to the source uri. */
-  playerKey?: string
+  playerKey: string
   allowsPictureInPicture: boolean
   progressUpdateInterval: number
   audioMixMode: AudioMixMode
-  coordinatorGroup?: string
+  coordinatorGroup: string
   visibilityAxis: VisibilityAxis
-  /** Negative means "use the global configureAutoplay value". Never optional:
-   * clearing an optional number prop makes Fabric send an explicit null,
-   * which Nitro's prop parser rejects. */
+  /** Negative means "use the global configureAutoplay value". */
   minVisibleFraction: number
 
-  onLoad?: (event: LoadEvent) => void
-  onProgress?: (event: ProgressEvent) => void
-  onEnd?: () => void
-  onError?: (event: VideoErrorEvent) => void
-  onPlaybackStateChange?: (event: PlaybackStateEvent) => void
-  onFullscreenChange?: (isFullscreen: boolean) => void
-  onPictureInPictureChange?: (isActive: boolean) => void
-  onMutedChange?: (muted: boolean) => void
-  onVisibilityChange?: (visibleFraction: number) => void
+  onLoad: (event: LoadEvent) => void
+  onProgress: (event: ProgressEvent) => void
+  onEnd: () => void
+  onError: (event: VideoErrorEvent) => void
+  onPlaybackStateChange: (event: PlaybackStateEvent) => void
+  onFullscreenChange: (isFullscreen: boolean) => void
+  onPictureInPictureChange: (isActive: boolean) => void
+  onMutedChange: (muted: boolean) => void
+  onVisibilityChange: (visibleFraction: number) => void
 }
 
 export interface VideoViewMethods extends HybridViewMethods {

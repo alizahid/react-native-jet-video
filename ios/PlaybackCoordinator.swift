@@ -242,7 +242,7 @@ final class PlaybackCoordinator {
       }
       if abs(track.fraction - fraction) > 0.01 {
         track.fraction = fraction
-        view.onVisibilityChange?(fraction)
+        view.onVisibilityChange(fraction)
       }
       track.offscreenTicks = fraction <= 0.001 ? track.offscreenTicks + 1 : 0
 

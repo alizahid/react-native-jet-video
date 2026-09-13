@@ -31,12 +31,15 @@ function notMounted(): never {
   throw new Error('VideoView is not mounted')
 }
 
+const noop = () => {}
+
 // `callback()` allocates a fresh wrapper object, so wrapping inline would
-// mark every callback prop dirty on each parent re-render.
+// mark every callback prop dirty on each parent re-render. A missing handler
+// becomes a noop rather than undefined: see the note on the native props.
 function useNitroCallback<T extends (...args: never[]) => void>(
   fn: T | undefined
 ) {
-  return useMemo(() => (fn ? callback(fn) : undefined), [fn])
+  return useMemo(() => callback(fn ?? (noop as T)), [fn])
 }
 
 // Promise-returning methods reject instead of throwing synchronously.
@@ -154,12 +157,12 @@ export const VideoView = forwardRef<VideoViewRef, VideoViewProps>(
         volume={volume}
         resizeMode={resizeMode}
         controls={controls}
-        posterUri={poster}
-        playerKey={playerKey}
+        posterUri={poster ?? ''}
+        playerKey={playerKey ?? ''}
         allowsPictureInPicture={allowsPictureInPicture}
         progressUpdateInterval={progressUpdateInterval}
         audioMixMode={audioMixMode}
-        coordinatorGroup={coordinatorGroup}
+        coordinatorGroup={coordinatorGroup ?? ''}
         visibilityAxis={visibilityAxis}
         minVisibleFraction={minVisibleFraction}
         style={style}

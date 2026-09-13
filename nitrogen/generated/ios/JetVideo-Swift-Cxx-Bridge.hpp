@@ -319,21 +319,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
     return optional.value();
   }
   
-  // pragma MARK: std::optional<std::string>
-  /**
-   * Specialized version of `std::optional<std::string>`.
-   */
-  using std__optional_std__string_ = std::optional<std::string>;
-  inline std::optional<std::string> create_std__optional_std__string_(const std::string& value) noexcept {
-    return std::optional<std::string>(value);
-  }
-  inline bool has_value_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::string get_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
-    return optional.value();
-  }
-  
   // pragma MARK: std::function<void(const LoadEvent& /* event */)>
   /**
    * Specialized version of `std::function<void(const LoadEvent&)>`.
@@ -354,21 +339,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
   Func_void_LoadEvent create_Func_void_LoadEvent(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_LoadEvent_Wrapper wrap_Func_void_LoadEvent(Func_void_LoadEvent value) noexcept {
     return Func_void_LoadEvent_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: std::optional<std::function<void(const LoadEvent& /* event */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(const LoadEvent& / * event * /)>>`.
-   */
-  using std__optional_std__function_void_const_LoadEvent_____event______ = std::optional<std::function<void(const LoadEvent& /* event */)>>;
-  inline std::optional<std::function<void(const LoadEvent& /* event */)>> create_std__optional_std__function_void_const_LoadEvent_____event______(const std::function<void(const LoadEvent& /* event */)>& value) noexcept {
-    return std::optional<std::function<void(const LoadEvent& /* event */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_const_LoadEvent_____event______(const std::optional<std::function<void(const LoadEvent& /* event */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(const LoadEvent& /* event */)> get_std__optional_std__function_void_const_LoadEvent_____event______(const std::optional<std::function<void(const LoadEvent& /* event */)>>& optional) noexcept {
-    return optional.value();
   }
   
   // pragma MARK: std::function<void(const ProgressEvent& /* event */)>
@@ -393,36 +363,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
     return Func_void_ProgressEvent_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::optional<std::function<void(const ProgressEvent& /* event */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(const ProgressEvent& / * event * /)>>`.
-   */
-  using std__optional_std__function_void_const_ProgressEvent_____event______ = std::optional<std::function<void(const ProgressEvent& /* event */)>>;
-  inline std::optional<std::function<void(const ProgressEvent& /* event */)>> create_std__optional_std__function_void_const_ProgressEvent_____event______(const std::function<void(const ProgressEvent& /* event */)>& value) noexcept {
-    return std::optional<std::function<void(const ProgressEvent& /* event */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_const_ProgressEvent_____event______(const std::optional<std::function<void(const ProgressEvent& /* event */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(const ProgressEvent& /* event */)> get_std__optional_std__function_void_const_ProgressEvent_____event______(const std::optional<std::function<void(const ProgressEvent& /* event */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<std::function<void()>>
-  /**
-   * Specialized version of `std::optional<std::function<void()>>`.
-   */
-  using std__optional_std__function_void____ = std::optional<std::function<void()>>;
-  inline std::optional<std::function<void()>> create_std__optional_std__function_void____(const std::function<void()>& value) noexcept {
-    return std::optional<std::function<void()>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void()> get_std__optional_std__function_void____(const std::optional<std::function<void()>>& optional) noexcept {
-    return optional.value();
-  }
-  
   // pragma MARK: std::function<void(const VideoErrorEvent& /* event */)>
   /**
    * Specialized version of `std::function<void(const VideoErrorEvent&)>`.
@@ -443,21 +383,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
   Func_void_VideoErrorEvent create_Func_void_VideoErrorEvent(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_VideoErrorEvent_Wrapper wrap_Func_void_VideoErrorEvent(Func_void_VideoErrorEvent value) noexcept {
     return Func_void_VideoErrorEvent_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: std::optional<std::function<void(const VideoErrorEvent& /* event */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(const VideoErrorEvent& / * event * /)>>`.
-   */
-  using std__optional_std__function_void_const_VideoErrorEvent_____event______ = std::optional<std::function<void(const VideoErrorEvent& /* event */)>>;
-  inline std::optional<std::function<void(const VideoErrorEvent& /* event */)>> create_std__optional_std__function_void_const_VideoErrorEvent_____event______(const std::function<void(const VideoErrorEvent& /* event */)>& value) noexcept {
-    return std::optional<std::function<void(const VideoErrorEvent& /* event */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_const_VideoErrorEvent_____event______(const std::optional<std::function<void(const VideoErrorEvent& /* event */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(const VideoErrorEvent& /* event */)> get_std__optional_std__function_void_const_VideoErrorEvent_____event______(const std::optional<std::function<void(const VideoErrorEvent& /* event */)>>& optional) noexcept {
-    return optional.value();
   }
   
   // pragma MARK: std::function<void(const PlaybackStateEvent& /* event */)>
@@ -482,21 +407,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
     return Func_void_PlaybackStateEvent_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(const PlaybackStateEvent& / * event * /)>>`.
-   */
-  using std__optional_std__function_void_const_PlaybackStateEvent_____event______ = std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>;
-  inline std::optional<std::function<void(const PlaybackStateEvent& /* event */)>> create_std__optional_std__function_void_const_PlaybackStateEvent_____event______(const std::function<void(const PlaybackStateEvent& /* event */)>& value) noexcept {
-    return std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_const_PlaybackStateEvent_____event______(const std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(const PlaybackStateEvent& /* event */)> get_std__optional_std__function_void_const_PlaybackStateEvent_____event______(const std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
   // pragma MARK: std::function<void(bool /* isFullscreen */)>
   /**
    * Specialized version of `std::function<void(bool)>`.
@@ -517,66 +427,6 @@ namespace margelo::nitro::jetvideo::bridge::swift {
   Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept;
   inline Func_void_bool_Wrapper wrap_Func_void_bool(Func_void_bool value) noexcept {
     return Func_void_bool_Wrapper(std::move(value));
-  }
-  
-  // pragma MARK: std::optional<std::function<void(bool /* isFullscreen */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(bool / * isFullscreen * /)>>`.
-   */
-  using std__optional_std__function_void_bool____isFullscreen______ = std::optional<std::function<void(bool /* isFullscreen */)>>;
-  inline std::optional<std::function<void(bool /* isFullscreen */)>> create_std__optional_std__function_void_bool____isFullscreen______(const std::function<void(bool /* isFullscreen */)>& value) noexcept {
-    return std::optional<std::function<void(bool /* isFullscreen */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_bool____isFullscreen______(const std::optional<std::function<void(bool /* isFullscreen */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(bool /* isFullscreen */)> get_std__optional_std__function_void_bool____isFullscreen______(const std::optional<std::function<void(bool /* isFullscreen */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<std::function<void(bool /* isActive */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(bool / * isActive * /)>>`.
-   */
-  using std__optional_std__function_void_bool____isActive______ = std::optional<std::function<void(bool /* isActive */)>>;
-  inline std::optional<std::function<void(bool /* isActive */)>> create_std__optional_std__function_void_bool____isActive______(const std::function<void(bool /* isActive */)>& value) noexcept {
-    return std::optional<std::function<void(bool /* isActive */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_bool____isActive______(const std::optional<std::function<void(bool /* isActive */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(bool /* isActive */)> get_std__optional_std__function_void_bool____isActive______(const std::optional<std::function<void(bool /* isActive */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<std::function<void(bool /* muted */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(bool / * muted * /)>>`.
-   */
-  using std__optional_std__function_void_bool____muted______ = std::optional<std::function<void(bool /* muted */)>>;
-  inline std::optional<std::function<void(bool /* muted */)>> create_std__optional_std__function_void_bool____muted______(const std::function<void(bool /* muted */)>& value) noexcept {
-    return std::optional<std::function<void(bool /* muted */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_bool____muted______(const std::optional<std::function<void(bool /* muted */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(bool /* muted */)> get_std__optional_std__function_void_bool____muted______(const std::optional<std::function<void(bool /* muted */)>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<std::function<void(double /* visibleFraction */)>>
-  /**
-   * Specialized version of `std::optional<std::function<void(double / * visibleFraction * /)>>`.
-   */
-  using std__optional_std__function_void_double____visibleFraction______ = std::optional<std::function<void(double /* visibleFraction */)>>;
-  inline std::optional<std::function<void(double /* visibleFraction */)>> create_std__optional_std__function_void_double____visibleFraction______(const std::function<void(double /* visibleFraction */)>& value) noexcept {
-    return std::optional<std::function<void(double /* visibleFraction */)>>(value);
-  }
-  inline bool has_value_std__optional_std__function_void_double____visibleFraction______(const std::optional<std::function<void(double /* visibleFraction */)>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::function<void(double /* visibleFraction */)> get_std__optional_std__function_void_double____visibleFraction______(const std::optional<std::function<void(double /* visibleFraction */)>>& optional) noexcept {
-    return optional.value();
   }
   
   // pragma MARK: std::shared_ptr<HybridVideoViewSpec>

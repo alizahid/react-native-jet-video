@@ -58,23 +58,23 @@ namespace margelo::nitro::jetvideo::views {
     CachedProp<double> volume;
     CachedProp<ResizeMode> resizeMode;
     CachedProp<bool> controls;
-    CachedProp<std::optional<std::string>> posterUri;
-    CachedProp<std::optional<std::string>> playerKey;
+    CachedProp<std::string> posterUri;
+    CachedProp<std::string> playerKey;
     CachedProp<bool> allowsPictureInPicture;
     CachedProp<double> progressUpdateInterval;
     CachedProp<AudioMixMode> audioMixMode;
-    CachedProp<std::optional<std::string>> coordinatorGroup;
+    CachedProp<std::string> coordinatorGroup;
     CachedProp<VisibilityAxis> visibilityAxis;
     CachedProp<double> minVisibleFraction;
-    CachedProp<std::optional<std::function<void(const LoadEvent& /* event */)>>> onLoad;
-    CachedProp<std::optional<std::function<void(const ProgressEvent& /* event */)>>> onProgress;
-    CachedProp<std::optional<std::function<void()>>> onEnd;
-    CachedProp<std::optional<std::function<void(const VideoErrorEvent& /* event */)>>> onError;
-    CachedProp<std::optional<std::function<void(const PlaybackStateEvent& /* event */)>>> onPlaybackStateChange;
-    CachedProp<std::optional<std::function<void(bool /* isFullscreen */)>>> onFullscreenChange;
-    CachedProp<std::optional<std::function<void(bool /* isActive */)>>> onPictureInPictureChange;
-    CachedProp<std::optional<std::function<void(bool /* muted */)>>> onMutedChange;
-    CachedProp<std::optional<std::function<void(double /* visibleFraction */)>>> onVisibilityChange;
+    CachedProp<std::function<void(const LoadEvent& /* event */)>> onLoad;
+    CachedProp<std::function<void(const ProgressEvent& /* event */)>> onProgress;
+    CachedProp<std::function<void()>> onEnd;
+    CachedProp<std::function<void(const VideoErrorEvent& /* event */)>> onError;
+    CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>> onPlaybackStateChange;
+    CachedProp<std::function<void(bool /* isFullscreen */)>> onFullscreenChange;
+    CachedProp<std::function<void(bool /* isActive */)>> onPictureInPictureChange;
+    CachedProp<std::function<void(bool /* muted */)>> onMutedChange;
+    CachedProp<std::function<void(double /* visibleFraction */)>> onVisibilityChange;
     CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>> hybridRef;
 
   private:

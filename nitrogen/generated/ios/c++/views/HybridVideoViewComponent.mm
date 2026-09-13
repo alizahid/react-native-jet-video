@@ -114,12 +114,12 @@ using namespace margelo::nitro::jetvideo::views;
     swiftPart.setControls(newViewProps.controls.value);
     newViewProps.controls.isDirty = false;
   }
-  // posterUri: optional
+  // posterUri: string
   if (newViewProps.posterUri.isDirty) {
     swiftPart.setPosterUri(newViewProps.posterUri.value);
     newViewProps.posterUri.isDirty = false;
   }
-  // playerKey: optional
+  // playerKey: string
   if (newViewProps.playerKey.isDirty) {
     swiftPart.setPlayerKey(newViewProps.playerKey.value);
     newViewProps.playerKey.isDirty = false;
@@ -139,7 +139,7 @@ using namespace margelo::nitro::jetvideo::views;
     swiftPart.setAudioMixMode(static_cast<int>(newViewProps.audioMixMode.value));
     newViewProps.audioMixMode.isDirty = false;
   }
-  // coordinatorGroup: optional
+  // coordinatorGroup: string
   if (newViewProps.coordinatorGroup.isDirty) {
     swiftPart.setCoordinatorGroup(newViewProps.coordinatorGroup.value);
     newViewProps.coordinatorGroup.isDirty = false;
@@ -154,47 +154,47 @@ using namespace margelo::nitro::jetvideo::views;
     swiftPart.setMinVisibleFraction(newViewProps.minVisibleFraction.value);
     newViewProps.minVisibleFraction.isDirty = false;
   }
-  // onLoad: optional
+  // onLoad: function
   if (newViewProps.onLoad.isDirty) {
     swiftPart.setOnLoad(newViewProps.onLoad.value);
     newViewProps.onLoad.isDirty = false;
   }
-  // onProgress: optional
+  // onProgress: function
   if (newViewProps.onProgress.isDirty) {
     swiftPart.setOnProgress(newViewProps.onProgress.value);
     newViewProps.onProgress.isDirty = false;
   }
-  // onEnd: optional
+  // onEnd: function
   if (newViewProps.onEnd.isDirty) {
     swiftPart.setOnEnd(newViewProps.onEnd.value);
     newViewProps.onEnd.isDirty = false;
   }
-  // onError: optional
+  // onError: function
   if (newViewProps.onError.isDirty) {
     swiftPart.setOnError(newViewProps.onError.value);
     newViewProps.onError.isDirty = false;
   }
-  // onPlaybackStateChange: optional
+  // onPlaybackStateChange: function
   if (newViewProps.onPlaybackStateChange.isDirty) {
     swiftPart.setOnPlaybackStateChange(newViewProps.onPlaybackStateChange.value);
     newViewProps.onPlaybackStateChange.isDirty = false;
   }
-  // onFullscreenChange: optional
+  // onFullscreenChange: function
   if (newViewProps.onFullscreenChange.isDirty) {
     swiftPart.setOnFullscreenChange(newViewProps.onFullscreenChange.value);
     newViewProps.onFullscreenChange.isDirty = false;
   }
-  // onPictureInPictureChange: optional
+  // onPictureInPictureChange: function
   if (newViewProps.onPictureInPictureChange.isDirty) {
     swiftPart.setOnPictureInPictureChange(newViewProps.onPictureInPictureChange.value);
     newViewProps.onPictureInPictureChange.isDirty = false;
   }
-  // onMutedChange: optional
+  // onMutedChange: function
   if (newViewProps.onMutedChange.isDirty) {
     swiftPart.setOnMutedChange(newViewProps.onMutedChange.value);
     newViewProps.onMutedChange.isDirty = false;
   }
-  // onVisibilityChange: optional
+  // onVisibilityChange: function
   if (newViewProps.onVisibilityChange.isDirty) {
     swiftPart.setOnVisibilityChange(newViewProps.onVisibilityChange.value);
     newViewProps.onVisibilityChange.isDirty = false;

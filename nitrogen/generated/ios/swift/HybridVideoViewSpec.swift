@@ -17,23 +17,23 @@ public protocol HybridVideoViewSpec_protocol: HybridObject, HybridView {
   var volume: Double { get set }
   var resizeMode: ResizeMode { get set }
   var controls: Bool { get set }
-  var posterUri: String? { get set }
-  var playerKey: String? { get set }
+  var posterUri: String { get set }
+  var playerKey: String { get set }
   var allowsPictureInPicture: Bool { get set }
   var progressUpdateInterval: Double { get set }
   var audioMixMode: AudioMixMode { get set }
-  var coordinatorGroup: String? { get set }
+  var coordinatorGroup: String { get set }
   var visibilityAxis: VisibilityAxis { get set }
   var minVisibleFraction: Double { get set }
-  var onLoad: ((_ event: LoadEvent) -> Void)? { get set }
-  var onProgress: ((_ event: ProgressEvent) -> Void)? { get set }
-  var onEnd: (() -> Void)? { get set }
-  var onError: ((_ event: VideoErrorEvent) -> Void)? { get set }
-  var onPlaybackStateChange: ((_ event: PlaybackStateEvent) -> Void)? { get set }
-  var onFullscreenChange: ((_ isFullscreen: Bool) -> Void)? { get set }
-  var onPictureInPictureChange: ((_ isActive: Bool) -> Void)? { get set }
-  var onMutedChange: ((_ muted: Bool) -> Void)? { get set }
-  var onVisibilityChange: ((_ visibleFraction: Double) -> Void)? { get set }
+  var onLoad: (_ event: LoadEvent) -> Void { get set }
+  var onProgress: (_ event: ProgressEvent) -> Void { get set }
+  var onEnd: () -> Void { get set }
+  var onError: (_ event: VideoErrorEvent) -> Void { get set }
+  var onPlaybackStateChange: (_ event: PlaybackStateEvent) -> Void { get set }
+  var onFullscreenChange: (_ isFullscreen: Bool) -> Void { get set }
+  var onPictureInPictureChange: (_ isActive: Bool) -> Void { get set }
+  var onMutedChange: (_ muted: Bool) -> Void { get set }
+  var onVisibilityChange: (_ visibleFraction: Double) -> Void { get set }
 
   // Methods
   func play() throws -> Void
