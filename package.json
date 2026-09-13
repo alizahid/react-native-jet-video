@@ -81,11 +81,11 @@
     "@types/jest": "^30.0.0",
     "@types/react": "^19.2.17",
     "jest": "^30.4.2",
-    "nitrogen": "^0.36.3",
+    "nitrogen": "^0.37.1",
     "react": "19.2.8",
     "react-native": "0.86.2",
     "react-native-builder-bob": "^0.43.0",
-    "react-native-nitro-modules": "^0.36.3",
+    "react-native-nitro-modules": "^0.37.1",
     "release-it": "^21.0.0",
     "ts-jest": "^29.4.12",
     "typescript": "^6.0.3"
