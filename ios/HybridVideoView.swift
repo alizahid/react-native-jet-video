@@ -49,6 +49,15 @@ class HybridVideoView: HybridVideoViewSpec {
 
   var view: UIView { surface }
 
+  // Native hosts can match their loading background to the surrounding content.
+  var backgroundColor: UIColor = .black {
+    didSet {
+      surface.backgroundColor = backgroundColor
+      posterView.backgroundColor = backgroundColor
+      controller?.view.backgroundColor = backgroundColor
+    }
+  }
+
   /// Identity of this view's player in the pool.
   private var resolvedKey: String? { nonEmpty(playerKey) ?? source?.uri }
   private var poster: String? { nonEmpty(posterUri) }
@@ -702,7 +711,7 @@ class HybridVideoView: HybridVideoViewSpec {
     controller.allowsPictureInPicturePlayback = false
     controller.delegate = controllerDelegateProxy
     FullscreenPresenter.keepPlayingThroughExit(controller)
-    controller.view.backgroundColor = .black
+    controller.view.backgroundColor = backgroundColor
     controller.view.frame = surface.bounds
     controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     controllerReadyObservation = controller.observe(\.isReadyForDisplay) { [weak self] controller, _ in

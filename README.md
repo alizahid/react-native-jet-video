@@ -278,6 +278,9 @@ controls and fullscreen. Rebinding the same source preserves playback. Scrolling
 below the visibility threshold pauses playback; scrolling back requires another tap.
 The supplied poster stays visible until the first play. Releasing the host returns
 its pooled engine.
+Set `onIntrinsicSize` to receive the source URL and natural video dimensions after
+load (also replayed when rebinding a loaded source). `backgroundColor` controls
+the loading surface and poster background.
 This adapter is used by `react-native-jet-markdown` for HTML video embeds.
 
 ## License
