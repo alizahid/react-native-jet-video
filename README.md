@@ -34,7 +34,9 @@ import { VideoView } from 'react-native-jet-video'
 - [Caching](#caching)
 - [Fullscreen](#fullscreen)
 - [Picture-in-Picture](#picture-in-picture)
+- [Native inline host](#native-inline-host)
 - [Example app](#example-app)
+- [Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -248,6 +250,21 @@ Opt out per source with `source={{ uri, cache: false }}`. HLS streams are **not*
 
 `startPictureInPicture()` rejects if PiP isn't possible (unsupported device, missing background mode). The iOS *simulator* only supports PiP on iPad simulators; test iPhone PiP on a device.
 
+## Native inline host
+
+Available since 1.1.0, `JetVideoInlineView` is a public UIKit host for the same player as `VideoView`.
+Create it with `init(frame:)` and call `configure(source:poster:)`; Objective-C
+consumers can discover `JetVideoInlineView` and call `configureSource:poster:`.
+It shows a poster and play button, starts playback on tap, and exposes native
+controls and fullscreen. Rebinding the same source preserves playback. Scrolling
+below the visibility threshold pauses playback; scrolling back requires another tap.
+The supplied poster stays visible until the first play. Releasing the host returns
+its pooled engine.
+Set `onIntrinsicSize` to receive the source URL and natural video dimensions after
+load (also replayed when rebinding a loaded source). `backgroundColor` controls
+the loading surface and poster background.
+This adapter is used by `react-native-jet-markdown` for HTML video embeds.
+
 ## Example app
 
 `example/` is an Expo dev-client app with a screen per feature — `BasicPlayback`, `RefMethods`, `Feed` (200-item FlashList stress test with a live pool readout), `FeedToDetail`, `Stacked`, `SwipeActions`, `Fullscreen`, `PictureInPicture`, `Cache`:
@@ -267,21 +284,6 @@ bun run ios
 <p align="center">
   Built for and sponsored by <a href="https://acorn.blue">Acorn</a>, a Reddit client for iOS.
 </p>
-
-### Native inline host
-
-`JetVideoInlineView` is a public UIKit host for the same player as `VideoView`.
-Create it with `init(frame:)` and call `configure(source:poster:)`; Objective-C
-consumers can discover `JetVideoInlineView` and call `configureSource:poster:`.
-It shows a poster and play button, starts playback on tap, and exposes native
-controls and fullscreen. Rebinding the same source preserves playback. Scrolling
-below the visibility threshold pauses playback; scrolling back requires another tap.
-The supplied poster stays visible until the first play. Releasing the host returns
-its pooled engine.
-Set `onIntrinsicSize` to receive the source URL and natural video dimensions after
-load (also replayed when rebinding a loaded source). `backgroundColor` controls
-the loading surface and poster background.
-This adapter is used by `react-native-jet-markdown` for HTML video embeds.
 
 ## License
 

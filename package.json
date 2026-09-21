@@ -41,7 +41,8 @@
     "nitro.json",
     "ios/**/*.swift",
     "*.podspec",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "workspaces": [
     "example"
@@ -122,7 +123,8 @@
       "publish": true
     },
     "github": {
-      "release": true
+      "release": true,
+      "releaseNotes": "awk '/^## / { if (section++) exit; next } section' CHANGELOG.md"
     },
     "plugins": {
       "@release-it/conventional-changelog": {

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.0
+
+Includes the native inline host introduced in `1.1.0-beta.0` and its sizing and appearance improvements from `1.1.0-beta.1`.
+
+### Added
+
+- Public UIKit `JetVideoInlineView` for native consumers such as `react-native-jet-markdown`, using the same player pool, caching, controls, and fullscreen implementation as `VideoView`.
+- Stable Objective-C integration through `JetVideoInlineView` and `configureSource:poster:`; Swift consumers use `configure(source:poster:)`.
+- Tap-to-play behavior for the native host, with offscreen pausing and no automatic resume when scrolled back. The supplied poster stays visible until the first play.
+- `onIntrinsicSize` reports the source URL and natural video dimensions after load. Rebinding a loaded source replays its dimensions without restarting playback, allowing native hosts to resize from placeholders.
+- Native host `backgroundColor` support for loading surfaces and poster backgrounds. Releasing the host returns its pooled engine.
+
+### Fixed
+
+- The CocoaPods source tag now uses the `v` prefix, matching the repository's release tags.
+
+### Compatibility
+
+- No breaking changes from 1.0.0. The React Native `VideoView` API and its existing playback defaults are unchanged.
+- iOS only; requires `react-native-nitro-modules >= 0.36.0`.
+
 ## 1.0.0
 
 The first stable release. Everything since 0.1.0, curated:
