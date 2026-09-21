@@ -179,15 +179,22 @@ class HybridVideoView: HybridVideoViewSpec {
     }
   }
 
+  // Native tap-to-play hosts keep the supplied poster over a prerolled
+  // first frame (which is often black) until the user starts playback.
+  var keepsPosterUntilPlay = false {
+    didSet { updatePosterVisibility() }
+  }
+
   var posterUri: String = "" {
     didSet {
       posterView.setPoster(uri: poster)
-      if poster == nil {
-        posterView.isHidden = true
-      } else if controller?.isReadyForDisplay != true {
-        posterView.isHidden = false
-      }
+      updatePosterVisibility()
     }
+  }
+
+  private func updatePosterVisibility() {
+    posterView.isHidden = poster == nil ||
+      (!keepsPosterUntilPlay && controller?.isReadyForDisplay == true)
   }
 
   var allowsPictureInPicture: Bool = false {
@@ -701,7 +708,7 @@ class HybridVideoView: HybridVideoViewSpec {
     controllerReadyObservation = controller.observe(\.isReadyForDisplay) { [weak self] controller, _ in
       DispatchQueue.main.async {
         if controller.isReadyForDisplay {
-          self?.posterView.isHidden = true
+          self?.updatePosterVisibility()
         }
       }
     }

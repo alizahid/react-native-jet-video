@@ -268,6 +268,18 @@ bun run ios
   Built for and sponsored by <a href="https://acorn.blue">Acorn</a>, a Reddit client for iOS.
 </p>
 
+### Native inline host
+
+`JetVideoInlineView` is a public UIKit host for the same player as `VideoView`.
+Create it with `init(frame:)` and call `configure(source:poster:)`; Objective-C
+consumers can discover `JetVideoInlineView` and call `configureSource:poster:`.
+It shows a poster and play button, starts playback on tap, and exposes native
+controls and fullscreen. Rebinding the same source preserves playback. Scrolling
+below the visibility threshold pauses playback; scrolling back requires another tap.
+The supplied poster stays visible until the first play. Releasing the host returns
+its pooled engine.
+This adapter is used by `react-native-jet-markdown` for HTML video embeds.
+
 ## License
 
 MIT © Ali Zahid
