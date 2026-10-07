@@ -37,6 +37,7 @@ using namespace margelo::nitro::jetvideo::views;
 
 @implementation HybridVideoViewComponent {
   std::shared_ptr<HybridVideoViewSpecSwift> _hybridView;
+  BOOL _didDropView;
 }
 
 + (void) load {
@@ -50,6 +51,7 @@ using namespace margelo::nitro::jetvideo::views;
 
 - (instancetype) init {
   if (self = [super init]) {
+    _props = HybridVideoViewShadowNode::defaultSharedProps();
     std::shared_ptr<HybridVideoViewSpec> hybridView = JetVideo::JetVideoAutolinking::createVideoView();
     _hybridView = std::dynamic_pointer_cast<HybridVideoViewSpecSwift>(hybridView);
     [self updateView];
@@ -69,150 +71,193 @@ using namespace margelo::nitro::jetvideo::views;
   [self setContentView:view];
 }
 
+- (void) notifyOnDropView {
+  // A recycled component can later be invalidated. Notify only once per mount.
+  if (_didDropView) {
+    return;
+  }
+  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
+  swiftPart.onDropView();
+  _didDropView = YES;
+}
+
 - (void) updateProps:(const std::shared_ptr<const react::Props>&)props
             oldProps:(const std::shared_ptr<const react::Props>&)oldProps {
+  // A props update marks a newly mounted or still-active component.
+  _didDropView = NO;
+
   // 1. Downcast props
-  const auto& newViewPropsConst = *std::static_pointer_cast<HybridVideoViewProps const>(props);
-  auto& newViewProps = const_cast<HybridVideoViewProps&>(newViewPropsConst);
+  const auto& newViewProps = *std::static_pointer_cast<const HybridVideoViewProps>(props);
+  const auto* oldViewProps = static_cast<const HybridVideoViewProps*>(oldProps.get());
   JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
 
-  // 2. Update each prop individually
-  swiftPart.beforeUpdate();
+  // 2. Update only props that differ from the previous Props snapshot.
+  const bool hasTransactionPropChanges = oldViewProps == nullptr
+      ? newViewProps.hasAnyProvidedProps()
+      : !newViewProps.hasSameProps(*oldViewProps);
+  if (hasTransactionPropChanges) {
+    swiftPart.beforeUpdate();
 
-  // source: optional
-  if (newViewProps.source.isDirty) {
-    swiftPart.setSource(newViewProps.source.value);
-    newViewProps.source.isDirty = false;
-  }
-  // autoplayMode: enum
-  if (newViewProps.autoplayMode.isDirty) {
-    swiftPart.setAutoplayMode(static_cast<int>(newViewProps.autoplayMode.value));
-    newViewProps.autoplayMode.isDirty = false;
-  }
-  // muted: boolean
-  if (newViewProps.muted.isDirty) {
-    swiftPart.setMuted(newViewProps.muted.value);
-    newViewProps.muted.isDirty = false;
-  }
-  // loop: boolean
-  if (newViewProps.loop.isDirty) {
-    swiftPart.setLoop(newViewProps.loop.value);
-    newViewProps.loop.isDirty = false;
-  }
-  // volume: number
-  if (newViewProps.volume.isDirty) {
-    swiftPart.setVolume(newViewProps.volume.value);
-    newViewProps.volume.isDirty = false;
-  }
-  // resizeMode: enum
-  if (newViewProps.resizeMode.isDirty) {
-    swiftPart.setResizeMode(static_cast<int>(newViewProps.resizeMode.value));
-    newViewProps.resizeMode.isDirty = false;
-  }
-  // controls: boolean
-  if (newViewProps.controls.isDirty) {
-    swiftPart.setControls(newViewProps.controls.value);
-    newViewProps.controls.isDirty = false;
-  }
-  // posterUri: string
-  if (newViewProps.posterUri.isDirty) {
-    swiftPart.setPosterUri(newViewProps.posterUri.value);
-    newViewProps.posterUri.isDirty = false;
-  }
-  // playerKey: string
-  if (newViewProps.playerKey.isDirty) {
-    swiftPart.setPlayerKey(newViewProps.playerKey.value);
-    newViewProps.playerKey.isDirty = false;
-  }
-  // allowsPictureInPicture: boolean
-  if (newViewProps.allowsPictureInPicture.isDirty) {
-    swiftPart.setAllowsPictureInPicture(newViewProps.allowsPictureInPicture.value);
-    newViewProps.allowsPictureInPicture.isDirty = false;
-  }
-  // progressUpdateInterval: number
-  if (newViewProps.progressUpdateInterval.isDirty) {
-    swiftPart.setProgressUpdateInterval(newViewProps.progressUpdateInterval.value);
-    newViewProps.progressUpdateInterval.isDirty = false;
-  }
-  // audioMixMode: enum
-  if (newViewProps.audioMixMode.isDirty) {
-    swiftPart.setAudioMixMode(static_cast<int>(newViewProps.audioMixMode.value));
-    newViewProps.audioMixMode.isDirty = false;
-  }
-  // coordinatorGroup: string
-  if (newViewProps.coordinatorGroup.isDirty) {
-    swiftPart.setCoordinatorGroup(newViewProps.coordinatorGroup.value);
-    newViewProps.coordinatorGroup.isDirty = false;
-  }
-  // visibilityAxis: enum
-  if (newViewProps.visibilityAxis.isDirty) {
-    swiftPart.setVisibilityAxis(static_cast<int>(newViewProps.visibilityAxis.value));
-    newViewProps.visibilityAxis.isDirty = false;
-  }
-  // minVisibleFraction: number
-  if (newViewProps.minVisibleFraction.isDirty) {
-    swiftPart.setMinVisibleFraction(newViewProps.minVisibleFraction.value);
-    newViewProps.minVisibleFraction.isDirty = false;
-  }
-  // onLoad: function
-  if (newViewProps.onLoad.isDirty) {
-    swiftPart.setOnLoad(newViewProps.onLoad.value);
-    newViewProps.onLoad.isDirty = false;
-  }
-  // onProgress: function
-  if (newViewProps.onProgress.isDirty) {
-    swiftPart.setOnProgress(newViewProps.onProgress.value);
-    newViewProps.onProgress.isDirty = false;
-  }
-  // onEnd: function
-  if (newViewProps.onEnd.isDirty) {
-    swiftPart.setOnEnd(newViewProps.onEnd.value);
-    newViewProps.onEnd.isDirty = false;
-  }
-  // onError: function
-  if (newViewProps.onError.isDirty) {
-    swiftPart.setOnError(newViewProps.onError.value);
-    newViewProps.onError.isDirty = false;
-  }
-  // onPlaybackStateChange: function
-  if (newViewProps.onPlaybackStateChange.isDirty) {
-    swiftPart.setOnPlaybackStateChange(newViewProps.onPlaybackStateChange.value);
-    newViewProps.onPlaybackStateChange.isDirty = false;
-  }
-  // onFullscreenChange: function
-  if (newViewProps.onFullscreenChange.isDirty) {
-    swiftPart.setOnFullscreenChange(newViewProps.onFullscreenChange.value);
-    newViewProps.onFullscreenChange.isDirty = false;
-  }
-  // onPictureInPictureChange: function
-  if (newViewProps.onPictureInPictureChange.isDirty) {
-    swiftPart.setOnPictureInPictureChange(newViewProps.onPictureInPictureChange.value);
-    newViewProps.onPictureInPictureChange.isDirty = false;
-  }
-  // onMutedChange: function
-  if (newViewProps.onMutedChange.isDirty) {
-    swiftPart.setOnMutedChange(newViewProps.onMutedChange.value);
-    newViewProps.onMutedChange.isDirty = false;
-  }
-  // onVisibilityChange: function
-  if (newViewProps.onVisibilityChange.isDirty) {
-    swiftPart.setOnVisibilityChange(newViewProps.onVisibilityChange.value);
-    newViewProps.onVisibilityChange.isDirty = false;
-  }
-
-  swiftPart.afterUpdate();
-
-  // 3. Update hybridRef if it changed
-  if (newViewProps.hybridRef.isDirty) {
-    // hybridRef changed - call it with new this
-    const auto& maybeFunc = newViewProps.hybridRef.value;
-    if (maybeFunc.has_value()) {
-      maybeFunc.value()(_hybridView);
+    // source: optional
+    if (oldViewProps == nullptr
+          ? newViewProps.source.isProvided()
+          : !newViewProps.source.hasSameValue(oldViewProps->source)) {
+      swiftPart.setSource(newViewProps.source.get());
     }
-    newViewProps.hybridRef.isDirty = false;
+    // autoplayMode: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.autoplayMode.isProvided()
+          : !newViewProps.autoplayMode.hasSameValue(oldViewProps->autoplayMode)) {
+      swiftPart.setAutoplayMode(static_cast<int>(newViewProps.autoplayMode.get()));
+    }
+    // muted: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.muted.isProvided()
+          : !newViewProps.muted.hasSameValue(oldViewProps->muted)) {
+      swiftPart.setMuted(newViewProps.muted.get());
+    }
+    // loop: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.loop.isProvided()
+          : !newViewProps.loop.hasSameValue(oldViewProps->loop)) {
+      swiftPart.setLoop(newViewProps.loop.get());
+    }
+    // volume: number
+    if (oldViewProps == nullptr
+          ? newViewProps.volume.isProvided()
+          : !newViewProps.volume.hasSameValue(oldViewProps->volume)) {
+      swiftPart.setVolume(newViewProps.volume.get());
+    }
+    // resizeMode: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.resizeMode.isProvided()
+          : !newViewProps.resizeMode.hasSameValue(oldViewProps->resizeMode)) {
+      swiftPart.setResizeMode(static_cast<int>(newViewProps.resizeMode.get()));
+    }
+    // controls: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.controls.isProvided()
+          : !newViewProps.controls.hasSameValue(oldViewProps->controls)) {
+      swiftPart.setControls(newViewProps.controls.get());
+    }
+    // posterUri: string
+    if (oldViewProps == nullptr
+          ? newViewProps.posterUri.isProvided()
+          : !newViewProps.posterUri.hasSameValue(oldViewProps->posterUri)) {
+      swiftPart.setPosterUri(newViewProps.posterUri.get());
+    }
+    // playerKey: string
+    if (oldViewProps == nullptr
+          ? newViewProps.playerKey.isProvided()
+          : !newViewProps.playerKey.hasSameValue(oldViewProps->playerKey)) {
+      swiftPart.setPlayerKey(newViewProps.playerKey.get());
+    }
+    // allowsPictureInPicture: boolean
+    if (oldViewProps == nullptr
+          ? newViewProps.allowsPictureInPicture.isProvided()
+          : !newViewProps.allowsPictureInPicture.hasSameValue(oldViewProps->allowsPictureInPicture)) {
+      swiftPart.setAllowsPictureInPicture(newViewProps.allowsPictureInPicture.get());
+    }
+    // progressUpdateInterval: number
+    if (oldViewProps == nullptr
+          ? newViewProps.progressUpdateInterval.isProvided()
+          : !newViewProps.progressUpdateInterval.hasSameValue(oldViewProps->progressUpdateInterval)) {
+      swiftPart.setProgressUpdateInterval(newViewProps.progressUpdateInterval.get());
+    }
+    // audioMixMode: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.audioMixMode.isProvided()
+          : !newViewProps.audioMixMode.hasSameValue(oldViewProps->audioMixMode)) {
+      swiftPart.setAudioMixMode(static_cast<int>(newViewProps.audioMixMode.get()));
+    }
+    // coordinatorGroup: string
+    if (oldViewProps == nullptr
+          ? newViewProps.coordinatorGroup.isProvided()
+          : !newViewProps.coordinatorGroup.hasSameValue(oldViewProps->coordinatorGroup)) {
+      swiftPart.setCoordinatorGroup(newViewProps.coordinatorGroup.get());
+    }
+    // visibilityAxis: enum
+    if (oldViewProps == nullptr
+          ? newViewProps.visibilityAxis.isProvided()
+          : !newViewProps.visibilityAxis.hasSameValue(oldViewProps->visibilityAxis)) {
+      swiftPart.setVisibilityAxis(static_cast<int>(newViewProps.visibilityAxis.get()));
+    }
+    // minVisibleFraction: number
+    if (oldViewProps == nullptr
+          ? newViewProps.minVisibleFraction.isProvided()
+          : !newViewProps.minVisibleFraction.hasSameValue(oldViewProps->minVisibleFraction)) {
+      swiftPart.setMinVisibleFraction(newViewProps.minVisibleFraction.get());
+    }
+    // onLoad: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onLoad.isProvided()
+          : !newViewProps.onLoad.hasSameValue(oldViewProps->onLoad)) {
+      swiftPart.setOnLoad(newViewProps.onLoad.get());
+    }
+    // onProgress: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onProgress.isProvided()
+          : !newViewProps.onProgress.hasSameValue(oldViewProps->onProgress)) {
+      swiftPart.setOnProgress(newViewProps.onProgress.get());
+    }
+    // onEnd: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onEnd.isProvided()
+          : !newViewProps.onEnd.hasSameValue(oldViewProps->onEnd)) {
+      swiftPart.setOnEnd(newViewProps.onEnd.get());
+    }
+    // onError: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onError.isProvided()
+          : !newViewProps.onError.hasSameValue(oldViewProps->onError)) {
+      swiftPart.setOnError(newViewProps.onError.get());
+    }
+    // onPlaybackStateChange: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onPlaybackStateChange.isProvided()
+          : !newViewProps.onPlaybackStateChange.hasSameValue(oldViewProps->onPlaybackStateChange)) {
+      swiftPart.setOnPlaybackStateChange(newViewProps.onPlaybackStateChange.get());
+    }
+    // onFullscreenChange: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onFullscreenChange.isProvided()
+          : !newViewProps.onFullscreenChange.hasSameValue(oldViewProps->onFullscreenChange)) {
+      swiftPart.setOnFullscreenChange(newViewProps.onFullscreenChange.get());
+    }
+    // onPictureInPictureChange: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onPictureInPictureChange.isProvided()
+          : !newViewProps.onPictureInPictureChange.hasSameValue(oldViewProps->onPictureInPictureChange)) {
+      swiftPart.setOnPictureInPictureChange(newViewProps.onPictureInPictureChange.get());
+    }
+    // onMutedChange: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onMutedChange.isProvided()
+          : !newViewProps.onMutedChange.hasSameValue(oldViewProps->onMutedChange)) {
+      swiftPart.setOnMutedChange(newViewProps.onMutedChange.get());
+    }
+    // onVisibilityChange: function
+    if (oldViewProps == nullptr
+          ? newViewProps.onVisibilityChange.isProvided()
+          : !newViewProps.onVisibilityChange.hasSameValue(oldViewProps->onVisibilityChange)) {
+      swiftPart.setOnVisibilityChange(newViewProps.onVisibilityChange.get());
+    }
+
+    // Update hybridRef if it changed
+    if (oldViewProps == nullptr
+          ? newViewProps.hybridRef.isProvided()
+          : !newViewProps.hybridRef.hasSameValue(oldViewProps->hybridRef)) {
+      // hybridRef changed - call it with new this
+      const auto& maybeFunc = newViewProps.hybridRef.get();
+      if (maybeFunc.has_value()) {
+        maybeFunc.value()(_hybridView);
+      }
+    }
+
+    swiftPart.afterUpdate();
   }
 
-  // 4. Continue in base class
+  // 3. Continue in base class
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -221,6 +266,7 @@ using namespace margelo::nitro::jetvideo::views;
 }
 
 - (void)prepareForRecycle {
+  [self notifyOnDropView];
   [super prepareForRecycle];
   JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
   swiftPart.maybePrepareForRecycle();
@@ -228,8 +274,7 @@ using namespace margelo::nitro::jetvideo::views;
 
 #ifdef ENABLE_RCT_COMPONENT_VIEW_INVALIDATE
 - (void)invalidate {
-  JetVideo::HybridVideoViewSpec_cxx& swiftPart = _hybridView->getSwiftPart();
-  swiftPart.onDropView();
+  [self notifyOnDropView];
   [super invalidate];
 }
 #endif

@@ -7,14 +7,15 @@
 
 #pragma once
 
-#include <optional>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/NitroHash.hpp>
-#include <NitroModules/CachedProp.hpp>
-#include <react/renderer/core/ConcreteComponentDescriptor.h>
-#include <react/renderer/core/PropsParserContext.h>
+#include <NitroModules/ReactProp.hpp>
+#include <NitroModules/ViewComponentDescriptor.hpp>
+#include <NitroModules/ViewPropsHolderState.hpp>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <react/renderer/components/view/ViewProps.h>
+#include <react/renderer/core/PropsParserContext.h>
+#include <react/renderer/core/RawProps.h>
+
+#include <string>
 
 #include "VideoSource.hpp"
 #include <optional>
@@ -51,31 +52,89 @@ namespace margelo::nitro::jetvideo::views {
                          const react::RawProps& rawProps);
 
   public:
-    CachedProp<std::optional<VideoSource>> source;
-    CachedProp<AutoplayMode> autoplayMode;
-    CachedProp<bool> muted;
-    CachedProp<bool> loop;
-    CachedProp<double> volume;
-    CachedProp<ResizeMode> resizeMode;
-    CachedProp<bool> controls;
-    CachedProp<std::string> posterUri;
-    CachedProp<std::string> playerKey;
-    CachedProp<bool> allowsPictureInPicture;
-    CachedProp<double> progressUpdateInterval;
-    CachedProp<AudioMixMode> audioMixMode;
-    CachedProp<std::string> coordinatorGroup;
-    CachedProp<VisibilityAxis> visibilityAxis;
-    CachedProp<double> minVisibleFraction;
-    CachedProp<std::function<void(const LoadEvent& /* event */)>> onLoad;
-    CachedProp<std::function<void(const ProgressEvent& /* event */)>> onProgress;
-    CachedProp<std::function<void()>> onEnd;
-    CachedProp<std::function<void(const VideoErrorEvent& /* event */)>> onError;
-    CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>> onPlaybackStateChange;
-    CachedProp<std::function<void(bool /* isFullscreen */)>> onFullscreenChange;
-    CachedProp<std::function<void(bool /* isActive */)>> onPictureInPictureChange;
-    CachedProp<std::function<void(bool /* muted */)>> onMutedChange;
-    CachedProp<std::function<void(double /* visibleFraction */)>> onVisibilityChange;
-    CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>> hybridRef;
+    nitro::ReactProp<std::optional<VideoSource>> source;
+    nitro::ReactProp<AutoplayMode> autoplayMode;
+    nitro::ReactProp<bool> muted;
+    nitro::ReactProp<bool> loop;
+    nitro::ReactProp<double> volume;
+    nitro::ReactProp<ResizeMode> resizeMode;
+    nitro::ReactProp<bool> controls;
+    nitro::ReactProp<std::string> posterUri;
+    nitro::ReactProp<std::string> playerKey;
+    nitro::ReactProp<bool> allowsPictureInPicture;
+    nitro::ReactProp<double> progressUpdateInterval;
+    nitro::ReactProp<AudioMixMode> audioMixMode;
+    nitro::ReactProp<std::string> coordinatorGroup;
+    nitro::ReactProp<VisibilityAxis> visibilityAxis;
+    nitro::ReactProp<double> minVisibleFraction;
+    nitro::ReactProp<std::function<void(const LoadEvent& /* event */)>> onLoad;
+    nitro::ReactProp<std::function<void(const ProgressEvent& /* event */)>> onProgress;
+    nitro::ReactProp<std::function<void()>> onEnd;
+    nitro::ReactProp<std::function<void(const VideoErrorEvent& /* event */)>> onError;
+    nitro::ReactProp<std::function<void(const PlaybackStateEvent& /* event */)>> onPlaybackStateChange;
+    nitro::ReactProp<std::function<void(bool /* isFullscreen */)>> onFullscreenChange;
+    nitro::ReactProp<std::function<void(bool /* isActive */)>> onPictureInPictureChange;
+    nitro::ReactProp<std::function<void(bool /* muted */)>> onMutedChange;
+    nitro::ReactProp<std::function<void(double /* visibleFraction */)>> onVisibilityChange;
+    nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>> hybridRef;
+
+    [[nodiscard]]
+    bool hasSameProps(const HybridVideoViewProps& other) const noexcept {
+      return source.hasSameValue(other.source) &&
+             autoplayMode.hasSameValue(other.autoplayMode) &&
+             muted.hasSameValue(other.muted) &&
+             loop.hasSameValue(other.loop) &&
+             volume.hasSameValue(other.volume) &&
+             resizeMode.hasSameValue(other.resizeMode) &&
+             controls.hasSameValue(other.controls) &&
+             posterUri.hasSameValue(other.posterUri) &&
+             playerKey.hasSameValue(other.playerKey) &&
+             allowsPictureInPicture.hasSameValue(other.allowsPictureInPicture) &&
+             progressUpdateInterval.hasSameValue(other.progressUpdateInterval) &&
+             audioMixMode.hasSameValue(other.audioMixMode) &&
+             coordinatorGroup.hasSameValue(other.coordinatorGroup) &&
+             visibilityAxis.hasSameValue(other.visibilityAxis) &&
+             minVisibleFraction.hasSameValue(other.minVisibleFraction) &&
+             onLoad.hasSameValue(other.onLoad) &&
+             onProgress.hasSameValue(other.onProgress) &&
+             onEnd.hasSameValue(other.onEnd) &&
+             onError.hasSameValue(other.onError) &&
+             onPlaybackStateChange.hasSameValue(other.onPlaybackStateChange) &&
+             onFullscreenChange.hasSameValue(other.onFullscreenChange) &&
+             onPictureInPictureChange.hasSameValue(other.onPictureInPictureChange) &&
+             onMutedChange.hasSameValue(other.onMutedChange) &&
+             onVisibilityChange.hasSameValue(other.onVisibilityChange) &&
+             hybridRef.hasSameValue(other.hybridRef);
+    }
+
+    [[nodiscard]]
+    bool hasAnyProvidedProps() const noexcept {
+      return source.isProvided() ||
+             autoplayMode.isProvided() ||
+             muted.isProvided() ||
+             loop.isProvided() ||
+             volume.isProvided() ||
+             resizeMode.isProvided() ||
+             controls.isProvided() ||
+             posterUri.isProvided() ||
+             playerKey.isProvided() ||
+             allowsPictureInPicture.isProvided() ||
+             progressUpdateInterval.isProvided() ||
+             audioMixMode.isProvided() ||
+             coordinatorGroup.isProvided() ||
+             visibilityAxis.isProvided() ||
+             minVisibleFraction.isProvided() ||
+             onLoad.isProvided() ||
+             onProgress.isProvided() ||
+             onEnd.isProvided() ||
+             onError.isProvided() ||
+             onPlaybackStateChange.isProvided() ||
+             onFullscreenChange.isProvided() ||
+             onPictureInPictureChange.isProvided() ||
+             onMutedChange.isProvided() ||
+             onVisibilityChange.isProvided() ||
+             hybridRef.isProvided();
+    }
 
   private:
     static bool filterObjectKeys(const std::string& propName);
@@ -84,32 +143,7 @@ namespace margelo::nitro::jetvideo::views {
   /**
    * State for the "VideoView" View.
    */
-  class HybridVideoViewState final {
-  public:
-    HybridVideoViewState() = default;
-    explicit HybridVideoViewState(const std::shared_ptr<HybridVideoViewProps>& props):
-      _props(props) {}
-
-  public:
-    [[nodiscard]]
-    const std::shared_ptr<HybridVideoViewProps>& getProps() const {
-      return _props;
-    }
-
-  public:
-#ifdef ANDROID
-  HybridVideoViewState(const HybridVideoViewState& /* previousState */, folly::dynamic /* data */) {}
-  folly::dynamic getDynamic() const {
-    throw std::runtime_error("HybridVideoViewState does not support folly!");
-  }
-  react::MapBuffer getMapBuffer() const {
-    throw std::runtime_error("HybridVideoViewState does not support MapBuffer!");
-  };
-#endif
-
-  private:
-    std::shared_ptr<HybridVideoViewProps> _props;
-  };
+  using HybridVideoViewState = nitro::ViewPropsHolderState<HybridVideoViewProps>;
 
   /**
    * The Shadow Node for the "VideoView" View.
@@ -122,21 +156,7 @@ namespace margelo::nitro::jetvideo::views {
   /**
    * The Component Descriptor for the "VideoView" View.
    */
-  class HybridVideoViewComponentDescriptor final: public react::ConcreteComponentDescriptor<HybridVideoViewShadowNode> {
-  public:
-    explicit HybridVideoViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters);
-
-  public:
-    /**
-     * A faster path for cloning props - reuses the caching logic from `HybridVideoViewProps`.
-     */
-    std::shared_ptr<const react::Props> cloneProps(const react::PropsParserContext& context,
-                                                   const std::shared_ptr<const react::Props>& props,
-                                                   react::RawProps rawProps) const override;
-#ifdef ANDROID
-    void adopt(react::ShadowNode& shadowNode) const override;
-#endif
-  };
+  using HybridVideoViewComponentDescriptor = nitro::ViewComponentDescriptor<HybridVideoViewShadowNode>;
 
   /* The actual view for "VideoView" needs to be implemented in platform-specific code. */
 

@@ -7,18 +7,12 @@
 
 #include "HybridVideoViewComponent.hpp"
 
-#include <string>
-#include <exception>
-#include <utility>
-#include <NitroModules/NitroDefines.hpp>
-#include <NitroModules/JSIConverter.hpp>
-#include <NitroModules/PropNameIDCache.hpp>
-#include <react/renderer/core/RawValue.h>
-#include <react/renderer/core/ShadowNode.h>
-#include <react/renderer/core/ComponentDescriptor.h>
-#include <react/renderer/components/view/ViewProps.h>
+#include <NitroModules/NitroHash.hpp>
+#include <NitroModules/ReactProp.hpp>
 
 namespace margelo::nitro::jetvideo::views {
+
+  using namespace facebook;
 
   extern const char HybridVideoViewComponentName[] = "VideoView";
 
@@ -26,256 +20,31 @@ namespace margelo::nitro::jetvideo::views {
                                              const HybridVideoViewProps& sourceProps,
                                              const react::RawProps& rawProps):
     react::ViewProps(context, sourceProps, rawProps, filterObjectKeys),
-    source([&]() -> CachedProp<std::optional<VideoSource>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("source", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.source;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<VideoSource>>::fromRawValue(*runtime, value, sourceProps.source);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.source: ") + exc.what());
-      }
-    }()),
-    autoplayMode([&]() -> CachedProp<AutoplayMode> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("autoplayMode", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.autoplayMode;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<AutoplayMode>::fromRawValue(*runtime, value, sourceProps.autoplayMode);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.autoplayMode: ") + exc.what());
-      }
-    }()),
-    muted([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("muted", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.muted;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.muted);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.muted: ") + exc.what());
-      }
-    }()),
-    loop([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("loop", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.loop;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.loop);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.loop: ") + exc.what());
-      }
-    }()),
-    volume([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("volume", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.volume;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.volume);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.volume: ") + exc.what());
-      }
-    }()),
-    resizeMode([&]() -> CachedProp<ResizeMode> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("resizeMode", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.resizeMode;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<ResizeMode>::fromRawValue(*runtime, value, sourceProps.resizeMode);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.resizeMode: ") + exc.what());
-      }
-    }()),
-    controls([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("controls", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.controls;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.controls);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.controls: ") + exc.what());
-      }
-    }()),
-    posterUri([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("posterUri", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.posterUri;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.posterUri);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.posterUri: ") + exc.what());
-      }
-    }()),
-    playerKey([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("playerKey", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.playerKey;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.playerKey);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.playerKey: ") + exc.what());
-      }
-    }()),
-    allowsPictureInPicture([&]() -> CachedProp<bool> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("allowsPictureInPicture", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.allowsPictureInPicture;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<bool>::fromRawValue(*runtime, value, sourceProps.allowsPictureInPicture);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.allowsPictureInPicture: ") + exc.what());
-      }
-    }()),
-    progressUpdateInterval([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("progressUpdateInterval", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.progressUpdateInterval;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.progressUpdateInterval);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.progressUpdateInterval: ") + exc.what());
-      }
-    }()),
-    audioMixMode([&]() -> CachedProp<AudioMixMode> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("audioMixMode", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.audioMixMode;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<AudioMixMode>::fromRawValue(*runtime, value, sourceProps.audioMixMode);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.audioMixMode: ") + exc.what());
-      }
-    }()),
-    coordinatorGroup([&]() -> CachedProp<std::string> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("coordinatorGroup", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.coordinatorGroup;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::string>::fromRawValue(*runtime, value, sourceProps.coordinatorGroup);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.coordinatorGroup: ") + exc.what());
-      }
-    }()),
-    visibilityAxis([&]() -> CachedProp<VisibilityAxis> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("visibilityAxis", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.visibilityAxis;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<VisibilityAxis>::fromRawValue(*runtime, value, sourceProps.visibilityAxis);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.visibilityAxis: ") + exc.what());
-      }
-    }()),
-    minVisibleFraction([&]() -> CachedProp<double> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("minVisibleFraction", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.minVisibleFraction;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<double>::fromRawValue(*runtime, value, sourceProps.minVisibleFraction);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.minVisibleFraction: ") + exc.what());
-      }
-    }()),
-    onLoad([&]() -> CachedProp<std::function<void(const LoadEvent& /* event */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onLoad", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onLoad;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(const LoadEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onLoad);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onLoad: ") + exc.what());
-      }
-    }()),
-    onProgress([&]() -> CachedProp<std::function<void(const ProgressEvent& /* event */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onProgress", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onProgress;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(const ProgressEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onProgress);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onProgress: ") + exc.what());
-      }
-    }()),
-    onEnd([&]() -> CachedProp<std::function<void()>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onEnd", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onEnd;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void()>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onEnd);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onEnd: ") + exc.what());
-      }
-    }()),
-    onError([&]() -> CachedProp<std::function<void(const VideoErrorEvent& /* event */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onError", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onError;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(const VideoErrorEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onError);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onError: ") + exc.what());
-      }
-    }()),
-    onPlaybackStateChange([&]() -> CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onPlaybackStateChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onPlaybackStateChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(const PlaybackStateEvent& /* event */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPlaybackStateChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onPlaybackStateChange: ") + exc.what());
-      }
-    }()),
-    onFullscreenChange([&]() -> CachedProp<std::function<void(bool /* isFullscreen */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onFullscreenChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onFullscreenChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(bool /* isFullscreen */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onFullscreenChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onFullscreenChange: ") + exc.what());
-      }
-    }()),
-    onPictureInPictureChange([&]() -> CachedProp<std::function<void(bool /* isActive */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onPictureInPictureChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onPictureInPictureChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(bool /* isActive */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onPictureInPictureChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onPictureInPictureChange: ") + exc.what());
-      }
-    }()),
-    onMutedChange([&]() -> CachedProp<std::function<void(bool /* muted */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onMutedChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onMutedChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(bool /* muted */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onMutedChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onMutedChange: ") + exc.what());
-      }
-    }()),
-    onVisibilityChange([&]() -> CachedProp<std::function<void(double /* visibleFraction */)>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("onVisibilityChange", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.onVisibilityChange;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::function<void(double /* visibleFraction */)>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.onVisibilityChange);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.onVisibilityChange: ") + exc.what());
-      }
-    }()),
-    hybridRef([&]() -> CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>> {
-      try {
-        const react::RawValue* rawValue = rawProps.at("hybridRef", nullptr, nullptr);
-        if (rawValue == nullptr) return sourceProps.hybridRef;
-        const auto& [runtime, value] = (std::pair<jsi::Runtime*, jsi::Value>)*rawValue;
-        return CachedProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>>::fromRawValue(*runtime, value.asObject(*runtime).getProperty(*runtime, PropNameIDCache::get(*runtime, "f")), sourceProps.hybridRef);
-      } catch (const std::exception& exc) {
-        throw std::runtime_error(std::string("VideoView.hybridRef: ") + exc.what());
-      }
-    }()) { }
+    source(nitro::ReactProp<std::optional<VideoSource>>::fromRawValue("VideoView", "source", rawProps, sourceProps.source)),
+    autoplayMode(nitro::ReactProp<AutoplayMode>::fromRawValue("VideoView", "autoplayMode", rawProps, sourceProps.autoplayMode)),
+    muted(nitro::ReactProp<bool>::fromRawValue("VideoView", "muted", rawProps, sourceProps.muted)),
+    loop(nitro::ReactProp<bool>::fromRawValue("VideoView", "loop", rawProps, sourceProps.loop)),
+    volume(nitro::ReactProp<double>::fromRawValue("VideoView", "volume", rawProps, sourceProps.volume)),
+    resizeMode(nitro::ReactProp<ResizeMode>::fromRawValue("VideoView", "resizeMode", rawProps, sourceProps.resizeMode)),
+    controls(nitro::ReactProp<bool>::fromRawValue("VideoView", "controls", rawProps, sourceProps.controls)),
+    posterUri(nitro::ReactProp<std::string>::fromRawValue("VideoView", "posterUri", rawProps, sourceProps.posterUri)),
+    playerKey(nitro::ReactProp<std::string>::fromRawValue("VideoView", "playerKey", rawProps, sourceProps.playerKey)),
+    allowsPictureInPicture(nitro::ReactProp<bool>::fromRawValue("VideoView", "allowsPictureInPicture", rawProps, sourceProps.allowsPictureInPicture)),
+    progressUpdateInterval(nitro::ReactProp<double>::fromRawValue("VideoView", "progressUpdateInterval", rawProps, sourceProps.progressUpdateInterval)),
+    audioMixMode(nitro::ReactProp<AudioMixMode>::fromRawValue("VideoView", "audioMixMode", rawProps, sourceProps.audioMixMode)),
+    coordinatorGroup(nitro::ReactProp<std::string>::fromRawValue("VideoView", "coordinatorGroup", rawProps, sourceProps.coordinatorGroup)),
+    visibilityAxis(nitro::ReactProp<VisibilityAxis>::fromRawValue("VideoView", "visibilityAxis", rawProps, sourceProps.visibilityAxis)),
+    minVisibleFraction(nitro::ReactProp<double>::fromRawValue("VideoView", "minVisibleFraction", rawProps, sourceProps.minVisibleFraction)),
+    onLoad(nitro::ReactProp<std::function<void(const LoadEvent& /* event */)>>::fromRawValue("VideoView", "onLoad", rawProps, sourceProps.onLoad)),
+    onProgress(nitro::ReactProp<std::function<void(const ProgressEvent& /* event */)>>::fromRawValue("VideoView", "onProgress", rawProps, sourceProps.onProgress)),
+    onEnd(nitro::ReactProp<std::function<void()>>::fromRawValue("VideoView", "onEnd", rawProps, sourceProps.onEnd)),
+    onError(nitro::ReactProp<std::function<void(const VideoErrorEvent& /* event */)>>::fromRawValue("VideoView", "onError", rawProps, sourceProps.onError)),
+    onPlaybackStateChange(nitro::ReactProp<std::function<void(const PlaybackStateEvent& /* event */)>>::fromRawValue("VideoView", "onPlaybackStateChange", rawProps, sourceProps.onPlaybackStateChange)),
+    onFullscreenChange(nitro::ReactProp<std::function<void(bool /* isFullscreen */)>>::fromRawValue("VideoView", "onFullscreenChange", rawProps, sourceProps.onFullscreenChange)),
+    onPictureInPictureChange(nitro::ReactProp<std::function<void(bool /* isActive */)>>::fromRawValue("VideoView", "onPictureInPictureChange", rawProps, sourceProps.onPictureInPictureChange)),
+    onMutedChange(nitro::ReactProp<std::function<void(bool /* muted */)>>::fromRawValue("VideoView", "onMutedChange", rawProps, sourceProps.onMutedChange)),
+    onVisibilityChange(nitro::ReactProp<std::function<void(double /* visibleFraction */)>>::fromRawValue("VideoView", "onVisibilityChange", rawProps, sourceProps.onVisibilityChange)),
+    hybridRef(nitro::ReactProp<std::optional<std::function<void(const std::shared_ptr<HybridVideoViewSpec>& /* ref */)>>>::fromRawValue("VideoView", "hybridRef", rawProps, sourceProps.hybridRef)) { }
 
   bool HybridVideoViewProps::filterObjectKeys(const std::string& propName) {
     switch (hashString(propName)) {
@@ -307,30 +76,5 @@ namespace margelo::nitro::jetvideo::views {
       default: return false;
     }
   }
-
-  HybridVideoViewComponentDescriptor::HybridVideoViewComponentDescriptor(const react::ComponentDescriptorParameters& parameters)
-    : ConcreteComponentDescriptor(parameters,
-                                  react::RawPropsParser()) {}
-
-  std::shared_ptr<const react::Props> HybridVideoViewComponentDescriptor::cloneProps(const react::PropsParserContext& context,
-                                                                                     const std::shared_ptr<const react::Props>& props,
-                                                                                     react::RawProps rawProps) const {
-    // 1. Prepare raw props parser
-    rawProps.parse(rawPropsParser_);
-    // 2. Copy props with Nitro's cached copy constructor
-    return HybridVideoViewShadowNode::Props(context, /* & */ rawProps, props);
-  }
-
-#ifdef ANDROID
-  void HybridVideoViewComponentDescriptor::adopt(react::ShadowNode& shadowNode) const {
-    // This is called immediately after `ShadowNode` is created, cloned or in progress.
-    // On Android, we need to wrap props in our state, which gets routed through Java and later unwrapped in JNI/C++.
-    auto& concreteShadowNode = static_cast<HybridVideoViewShadowNode&>(shadowNode);
-    const std::shared_ptr<const HybridVideoViewProps>& constProps = concreteShadowNode.getConcreteSharedProps();
-    const std::shared_ptr<HybridVideoViewProps>& props = std::const_pointer_cast<HybridVideoViewProps>(constProps);
-    HybridVideoViewState state{props};
-    concreteShadowNode.setStateData(std::move(state));
-  }
-#endif
 
 } // namespace margelo::nitro::jetvideo::views
