@@ -84,7 +84,7 @@
     "jest": "^30.4.2",
     "nitrogen": "^0.37.1",
     "react": "19.2.8",
-    "react-native": "0.86.2",
+    "react-native": "0.87.1",
     "react-native-builder-bob": "^0.43.0",
     "react-native-nitro-modules": "^0.37.1",
     "release-it": "^21.0.0",
